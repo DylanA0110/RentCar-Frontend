@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import useEmblaCarousel from 'embla-carousel-react';
+import { useMemo, useState } from 'react';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const testimonials = [
   {
@@ -34,100 +33,95 @@ const testimonials = [
 ];
 
 const Testimonials = () => {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    loop: true,
-    align: 'start',
-    slidesToScroll: 1,
-  });
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(true);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const active = useMemo(() => testimonials[activeIndex], [activeIndex]);
 
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
+  const handlePrev = () => {
+    setActiveIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
+  };
 
-  useEffect(() => {
-    if (!emblaApi) return;
-    emblaApi.on('select', onSelect);
-    onSelect();
-  }, [emblaApi, onSelect]);
-
-  // Autoplay
-  useEffect(() => {
-    if (!emblaApi) return;
-    const interval = setInterval(() => {
-      emblaApi.scrollNext();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [emblaApi]);
+  const handleNext = () => {
+    setActiveIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
+  };
 
   return (
     <section className="py-24">
       <div className="container mx-auto">
         <div className="flex items-end justify-between mb-12">
           <div>
-            <h2 className="text-3xl md:text-4xl font-semibold text-foreground mb-4">
-              Lo que dicen nuestros clientes
+            <h2 className="text-3xl md:text-4xl font-semibold text-foreground mb-3">
+              Voces que respaldan nuestra calidad
             </h2>
             <p className="text-muted-foreground">
-              Experiencias reales de quienes confían en nosotros.
+              Opiniones reales, servicio premium y una experiencia que se nota.
             </p>
           </div>
           <div className="hidden md:flex gap-2">
             <button
-              onClick={() => emblaApi?.scrollPrev()}
-              disabled={!canScrollPrev}
-              className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-secondary transition-colors disabled:opacity-30"
+              onClick={handlePrev}
+              className="testimonial-nav"
+              aria-label="Anterior"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
-              onClick={() => emblaApi?.scrollNext()}
-              disabled={!canScrollNext}
-              className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-foreground hover:bg-secondary transition-colors disabled:opacity-30"
+              onClick={handleNext}
+              className="testimonial-nav"
+              aria-label="Siguiente"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex gap-6">
-            {testimonials.map((t, i) => (
-              <motion.div
-                key={t.name}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                className="min-w-75 md:min-w-90 shrink-0"
-              >
-                <div className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm h-full">
-                  <div className="flex gap-0.5 mb-4">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <Star
-                        key={j}
-                        className="w-4 h-4 fill-foreground text-foreground"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                    "{t.text}"
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-xs font-medium text-secondary-foreground">
-                      {t.avatar}
-                    </div>
-                    <span className="text-sm font-medium text-foreground">
-                      {t.name}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+        <div className="flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active.name}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+              className="testimonial-card"
+            >
+              <span className="testimonial-card__title">Testimonio</span>
+              <div className="flex gap-0.5 mb-4">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <Star
+                    key={j}
+                    className="w-4 h-4 fill-foreground text-foreground"
+                  />
+                ))}
+              </div>
+              <p className="testimonial-card__content">"{active.text}"</p>
+              <div className="testimonial-card__meta">
+                <div className="testimonial-avatar">{active.avatar}</div>
+                <span className="text-sm font-semibold text-foreground">
+                  {active.name}
+                </span>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-3 md:hidden">
+          <button
+            onClick={handlePrev}
+            className="testimonial-nav"
+            aria-label="Anterior"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="text-xs text-muted-foreground">
+            {activeIndex + 1} / {testimonials.length}
           </div>
+          <button
+            onClick={handleNext}
+            className="testimonial-nav"
+            aria-label="Siguiente"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </section>

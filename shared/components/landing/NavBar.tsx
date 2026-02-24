@@ -47,13 +47,17 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm">
-            Iniciar Sesión
-          </Button>
-          <Button variant="outline" size="sm">
-            Registrarse
-          </Button>
-          <Link href="/catalogo">
+          <Link href="/login">
+            <Button variant="ghost" size="sm">
+              Iniciar Sesión
+            </Button>
+          </Link>
+          <Link href="/signup">
+            <Button variant="outline" size="sm">
+              Registrarse
+            </Button>
+          </Link>
+          <Link href="/catalog">
             <Button size="sm">Reservar Ahora</Button>
           </Link>
         </div>
@@ -86,20 +90,22 @@ const Navbar = () => {
                 Inicio
               </Link>
               <Link
-                href="/catalogo"
+                href="/catalog"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setOpen(false)}
               >
                 Catálogo
               </Link>
               <div className="flex flex-col gap-2 pt-2">
-                <Button variant="ghost" size="sm" className="justify-start">
-                  Iniciar Sesión
-                </Button>
+                <Link href="/login" onClick={() => setOpen(false)}>
+                  <Button variant="ghost" size="sm" className="justify-start">
+                    Iniciar Sesión
+                  </Button>
+                </Link>
                 <Button variant="outline" size="sm">
                   Registrarse
                 </Button>
-                <Link href="/catalogo" onClick={() => setOpen(false)}>
+                <Link href="/catalog" onClick={() => setOpen(false)}>
                   <Button size="sm" className="w-full">
                     Reservar Ahora
                   </Button>
