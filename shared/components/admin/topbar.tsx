@@ -4,6 +4,8 @@ import { Bell, Settings, LogOut, User, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { getVehiculoById } from '@/modules/vehiculos/actions/get-vehiculo-by-id';
 
 export function Topbar() {
   const router = useRouter();
@@ -20,12 +22,38 @@ export function Topbar() {
     payments: 'Pagos',
   };
 
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
   const segments = pathname.split('/').filter(Boolean);
+  const lastSegment = segments[segments.length - 1] ?? '';
+  const isVehicleEditRoute =
+    segments[0] === 'dashboard' &&
+    segments[1] === 'vehicles' &&
+    segments.length === 3 &&
+    uuidRegex.test(lastSegment);
+
+  const vehicleQuery = useQuery({
+    queryKey: ['vehiculo', lastSegment],
+    queryFn: ({ signal }) => getVehiculoById(lastSegment, { signal }),
+    enabled: isVehicleEditRoute,
+    staleTime: 1000 * 60,
+  });
+
+  const vehicleLabel = vehicleQuery.data
+    ? `${vehicleQuery.data.marca} ${vehicleQuery.data.modelo}`
+    : 'Editar Vehículo';
+
   const breadcrumbs = segments.map((segment, index) => {
     const href = '/' + segments.slice(0, index + 1).join('/');
+    const isLastSegment = index === segments.length - 1;
+
     return {
       href,
-      label: labelMap[segment] ?? segment,
+      label:
+        isVehicleEditRoute && isLastSegment
+          ? vehicleLabel
+          : (labelMap[segment] ?? segment),
     };
   });
 

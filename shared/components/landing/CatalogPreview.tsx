@@ -1,34 +1,35 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useMemo } from 'react';
 import Link from 'next/link';
+import { useVehiculo } from '@/modules/vehiculos/hook/useVehiculo';
 import { Button } from '../ui/button';
 
-const vehicles = [
-  {
-    name: 'Sedán Ejecutivo',
-    category: 'Sedán',
-    price: '$45/día',
-    image:
-      'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&h=400&fit=crop',
-  },
-  {
-    name: 'SUV Premium',
-    category: 'SUV',
-    price: '$65/día',
-    image:
-      'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=600&h=400&fit=crop',
-  },
-  {
-    name: 'Coupé Deportivo',
-    category: 'Deportivo',
-    price: '$85/día',
-    image:
-      'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=600&h=400&fit=crop',
-  },
-];
-
 const CatalogPreview = () => {
+  const { vehiculos, isLoading, isError } = useVehiculo();
+
+  const previewVehicles = useMemo(() => {
+    return (vehiculos ?? []).slice(0, 3);
+  }, [vehiculos]);
+
+  const getVehicleImage = (vehiculo: (typeof previewVehicles)[number]) => {
+    const principal = vehiculo.imagenes?.find(
+      (img) => img.esPrincipal && img.url?.trim(),
+    );
+    if (principal?.url) return principal.url;
+
+    const firstValid = vehiculo.imagenes?.find((img) => img.url?.trim());
+    if (firstValid?.url) return firstValid.url;
+
+    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400"%3E%3Crect width="600" height="400" fill="%23e5e7eb"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236b7280" font-size="22"%3ESin imagen%3C/text%3E%3C/svg%3E';
+  };
+
+  const formatPrecio = (precio: string) => {
+    const value = Number(precio);
+    if (!Number.isFinite(value)) return precio;
+    return `$${value.toFixed(2)}/día`;
+  };
+
   return (
     <section id="catalogo" className="py-24 bg-section-alt">
       <div className="container mx-auto">
@@ -42,44 +43,64 @@ const CatalogPreview = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {vehicles.map((v, i) => (
-            <motion.div
-              key={v.name}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.5 }}
-              className="group bg-card rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50"
-            >
-              <div className="aspect-video overflow-hidden">
-                <img
-                  src={v.image}
-                  alt={v.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-              <div className="p-6">
-                <p className="text-sm text-muted-foreground mb-1">
-                  {v.category}
-                </p>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  {v.name}
-                </h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-xl font-medium text-foreground">
-                    {v.price}
-                  </span>
-                  <Button variant="outline" size="sm" className="rounded-xl">
-                    Reservar
-                  </Button>
+          {isLoading &&
+            Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={`preview-skeleton-${index}`}
+                className="overflow-hidden rounded-2xl border border-border/50 bg-card"
+              >
+                <div className="aspect-video bg-muted" />
+                <div className="space-y-3 p-6">
+                  <div className="h-4 w-24 rounded bg-muted" />
+                  <div className="h-6 w-40 rounded bg-muted" />
+                  <div className="h-5 w-28 rounded bg-muted" />
                 </div>
               </div>
-            </motion.div>
-          ))}
+            ))}
+
+          {!isLoading &&
+            !isError &&
+            previewVehicles.map((vehicle) => (
+              <div
+                key={vehicle.id}
+                className="group overflow-hidden rounded-2xl border border-border/50 bg-card shadow-sm transition-all duration-300 hover:shadow-lg"
+              >
+                <div className="aspect-video overflow-hidden">
+                  <img
+                    src={getVehicleImage(vehicle)}
+                    alt={`${vehicle.marca} ${vehicle.modelo}`}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="p-6">
+                  <p className="mb-1 text-sm text-muted-foreground">
+                    {vehicle.categoria?.nombre ?? 'Sin categoría'}
+                  </p>
+                  <h3 className="mb-2 text-lg font-semibold text-foreground">
+                    {vehicle.marca} {vehicle.modelo}
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl font-medium text-foreground">
+                      {formatPrecio(vehicle.precioPorDia)}
+                    </span>
+                    <Button variant="outline" size="sm" className="rounded-xl">
+                      Reservar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+          {!isLoading && (isError || previewVehicles.length === 0) && (
+            <div className="col-span-full rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
+              No hay vehículos disponibles para mostrar en el preview.
+            </div>
+          )}
         </div>
 
         <div className="text-center mt-10">
-          <Link href="/catalogo">
+          <Link href="/catalog">
             <Button variant="outline" size="lg" className="rounded-2xl px-8">
               Ver todo el catálogo
             </Button>

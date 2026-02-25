@@ -33,6 +33,7 @@ const CatalogClient = () => {
     return (vehiculos ?? []).filter((v) => {
       const name = `${v.marca} ${v.modelo}`.trim();
       const category = v.categoria?.nombre ?? 'Sin categoria';
+      const precio = Number(v.precioPorDia);
       const matchSearch =
         name.toLowerCase().includes(search.toLowerCase()) ||
         category.toLowerCase().includes(search.toLowerCase());
@@ -40,7 +41,7 @@ const CatalogClient = () => {
         activeCategory === 'Todos' || category === activeCategory;
       const range = priceRanges[activePriceRange];
       const matchPrice =
-        v.precioPorDia >= range.min && v.precioPorDia <= range.max;
+        Number.isFinite(precio) && precio >= range.min && precio <= range.max;
       return matchSearch && matchCategory && matchPrice;
     });
   }, [vehiculos, search, activeCategory, activePriceRange]);
@@ -182,48 +183,61 @@ const CatalogClient = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((v, i) => (
-            <motion.div
-              key={v.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.4 }}
-              className="group bg-card rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50"
-            >
-              <div className="aspect-video overflow-hidden">
-                <img
-                  src={v.imagenUrl}
-                  alt={`${v.marca} ${v.modelo}`}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-              </div>
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
-                    {v.categoria?.nombre ?? 'Sin categoria'}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {v.anio} · {v.estado}
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-3">
-                  {v.marca} {v.modelo}
-                </h3>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-2xl font-semibold text-foreground">
-                      ${v.precioPorDia}
-                    </span>
-                    <span className="text-sm text-muted-foreground">/día</span>
+          {filtered.map((v, i) =>
+            (() => {
+              const imagenPrincipal =
+                v.imagenes?.find((img) => img.esPrincipal && img.url)?.url ??
+                v.imagenes?.find((img) => img.url)?.url ??
+                '';
+              return (
+                <motion.div
+                  key={v.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.4 }}
+                  className="group bg-card rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50"
+                >
+                  <div className="aspect-video overflow-hidden">
+                    <img
+                      src={
+                        imagenPrincipal ||
+                        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"%3E%3Crect width="640" height="360" fill="%23e5e7eb"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236b7280" font-size="24"%3ESin imagen%3C/text%3E%3C/svg%3E'
+                      }
+                      alt={`${v.marca} ${v.modelo}`}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
                   </div>
-                  <Button size="sm" className="rounded-xl">
-                    Reservar
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
+                        {v.categoria?.nombre ?? 'Sin categoria'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {v.anio} · {v.estado}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-3">
+                      {v.marca} {v.modelo}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-2xl font-semibold text-foreground">
+                          ${Number(v.precioPorDia).toFixed(2)}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          /día
+                        </span>
+                      </div>
+                      <Button size="sm" className="rounded-xl">
+                        Reservar
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })(),
+          )}
         </div>
 
         {!isLoading && !isError && filtered.length === 0 && (

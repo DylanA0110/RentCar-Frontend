@@ -2,15 +2,16 @@ import { vehiculosApi } from '../api/vehiculos.api';
 import type { Vehiculo } from '../types/vehiculo.interface';
 import { extractApiErrorMessage } from '@/shared/api/api-error';
 
-interface GetVehiculosOptions {
+interface GetVehiculoByIdOptions {
   signal?: AbortSignal;
 }
 
-export const getVehiculos = async (
-  options: GetVehiculosOptions = {},
-): Promise<Vehiculo[]> => {
+export const getVehiculoById = async (
+  id: string,
+  options: GetVehiculoByIdOptions = {},
+): Promise<Vehiculo> => {
   try {
-    const { data } = await vehiculosApi.get<Vehiculo[]>('/', {
+    const { data } = await vehiculosApi.get<Vehiculo>(`/${id}`, {
       signal: options.signal,
     });
 
@@ -18,9 +19,8 @@ export const getVehiculos = async (
   } catch (error) {
     const apiMessage = extractApiErrorMessage(
       error,
-      'No se pudieron obtener los vehículos',
+      'No se pudo obtener el vehículo',
     );
-
-    throw new Error(`No se pudieron obtener los vehículos: ${apiMessage}`);
+    throw new Error(`No se pudo obtener el vehículo: ${apiMessage}`);
   }
 };
