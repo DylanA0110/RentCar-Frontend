@@ -5,6 +5,7 @@ import Footer from '@/shared/components/landing/Footer';
 import Gallery from '@/shared/components/landing/Gallery';
 import HeroSection from '@/shared/components/landing/HeroSection';
 import HowItWorks from '@/shared/components/landing/HowItWorks';
+import LocationSection from '@/shared/components/landing/LocationSection';
 import Navbar from '@/shared/components/landing/NavBar';
 import Testimonials from '@/shared/components/landing/Testimonial';
 
@@ -15,6 +16,7 @@ export default function Home() {
       <HeroSection />
       <CatalogPreview />
       <HowItWorks />
+      <LocationSection />
       <Benefits />
       <Gallery />
       <Testimonials />

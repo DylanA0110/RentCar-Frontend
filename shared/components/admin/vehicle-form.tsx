@@ -231,7 +231,6 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
       const message =
         error instanceof Error ? error.message : 'Error al guardar el vehículo';
       toast.error(message);
-      setErrors((prev) => ({ ...prev, submit: message }));
     } finally {
       setIsSubmitting(false);
     }
@@ -281,12 +280,6 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
           {isSubmitting ? 'Guardando...' : 'Guardar vehículo'}
         </Button>
       </div>
-
-      {errors.submit && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-          {errors.submit}
-        </div>
-      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

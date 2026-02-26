@@ -84,27 +84,32 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 w-64 ${
-          isCollapsed ? 'md:w-20' : 'md:w-64'
-        } h-screen bg-sidebar border-r border-sidebar-border z-40 transform transition-all duration-300 md:translate-x-0 overflow-y-auto ${
+        className={`fixed left-0 top-0 w-56 ${
+          isCollapsed ? 'md:w-16' : 'md:w-56'
+        } h-screen bg-white border-r border-[#efc8cf] z-40 transform transition-all duration-300 md:translate-x-0 overflow-y-auto ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Logo */}
         <div
-          className={`h-16 flex items-center justify-between border-b border-sidebar-border px-6 ${
+          className={`h-16 flex items-center justify-between border-b border-[#efc8cf] px-6 ${
             isCollapsed ? 'md:px-3' : 'md:px-6'
           }`}
         >
-          <Link
-            href="/dashboard"
-            className="text-xl font-semibold text-sidebar-foreground"
-          >
-            {isCollapsed ? 'RC' : 'RentCar'}
+          <Link href="/dashboard" className="flex items-center">
+            <img
+              src="/assets/Logo_huber_Renta_car-removebg-preview.png"
+              alt="Huber Renta Car"
+              className={
+                isCollapsed
+                  ? 'h-8 w-auto object-contain'
+                  : 'h-10 w-auto object-contain'
+              }
+            />
           </Link>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg hover:bg-sidebar-accent/60 transition-colors"
+            className="hidden md:flex h-9 w-9 items-center justify-center rounded-lg hover:bg-black/10 transition-colors"
             aria-label="Toggle sidebar"
           >
             {isCollapsed ? (
@@ -119,8 +124,10 @@ export function Sidebar() {
         <nav className="flex-1 overflow-y-auto py-6">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + '/');
+            const isDashboardRoot = item.href === '/dashboard';
+            const isActive = isDashboardRoot
+              ? pathname === '/dashboard'
+              : pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}
@@ -130,8 +137,8 @@ export function Sidebar() {
                   isCollapsed ? 'md:px-0 md:justify-center' : 'md:px-6'
                 } py-3 text-sm font-medium transition-colors duration-300 ${
                   isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-sidebar-primary'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                    ? 'bg-[#f3ccd2] text-[#8f1220] border-l-2 border-[#cf2a3d]'
+                    : 'text-black hover:bg-[#f8dde2]'
                 }`}
               >
                 <Icon size={20} />
@@ -145,14 +152,14 @@ export function Sidebar() {
 
         {/* Footer Info */}
         <div
-          className={`border-t border-sidebar-border p-6 ${
+          className={`border-t border-[#efc8cf] p-6 ${
             isCollapsed ? 'md:p-4 md:text-center' : 'md:p-6'
           }`}
         ></div>
       </aside>
 
       {/* Spacer for Desktop */}
-      <div className={`hidden md:block ${isCollapsed ? 'w-20' : 'w-64'}`}></div>
+      <div className={`hidden md:block ${isCollapsed ? 'w-16' : 'w-56'}`}></div>
     </>
   );
 }

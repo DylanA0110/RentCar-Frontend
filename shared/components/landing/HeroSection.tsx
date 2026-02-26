@@ -1,12 +1,27 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/shared/components/ui/button';
 import heroImage from '@/public/assets/hero-car.jpg';
-import Image from 'next/image';
 import Link from 'next/link';
+import { Sora } from 'next/font/google';
+
+const sora = Sora({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+});
 
 const HeroSection = () => {
+  const fallbackHeroSrc = heroImage.src;
+  const preferredHiluxSrc = '/assets/hilux.jpg';
+  const [heroSrc, setHeroSrc] = useState(preferredHiluxSrc);
+
+  const resolvedHeroSrc = useMemo(
+    () => heroSrc || fallbackHeroSrc,
+    [heroSrc, fallbackHeroSrc],
+  );
+
   return (
     <section
       id="inicio"
@@ -31,14 +46,15 @@ const HeroSection = () => {
             premium · flexible · inmediato
           </span>
 
-          <h1 className="text-5xl md:text-6xl font-semibold text-foreground leading-[1.05] mb-6">
-            Tu auto premium,
-            <span className="block">listo cuando tu digas.</span>
+          <h1
+            className={`${sora.className} text-3xl md:text-5xl font-bold text-foreground leading-[0.98] mb-6`}
+          >
+            LOS MEJORES EN RENTA DE VEHÍCULOS
           </h1>
 
           <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-            Renta con proceso claro y entrega puntual. Selecciona, reserva y
-            disfruta sin fricciones.
+            Hacemos que tus viajes sean memorables con los mejores precios y
+            descuentos.
           </p>
 
           <div className="flex flex-wrap gap-4">
@@ -88,11 +104,12 @@ const HeroSection = () => {
               }}
               className="relative rounded-[28px] border border-border bg-card/70 p-6 shadow-2xl backdrop-blur"
             >
-              <Image
-                src={heroImage}
-                alt="Vehiculo premium de alquiler"
+              <img
+                src={resolvedHeroSrc}
+                alt="Vehículo premium de alquiler"
                 className="w-full h-auto object-cover"
-                priority
+                loading="eager"
+                onError={() => setHeroSrc(fallbackHeroSrc)}
               />
             </motion.div>
           </motion.div>

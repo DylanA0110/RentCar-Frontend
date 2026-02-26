@@ -1,8 +1,15 @@
 const Footer = () => {
   return (
-    <footer className="py-10 bg-section-alt border-t border-border">
+    <footer className="py-6 bg-section-alt border-t border-border">
       <div className="container mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        <div className="mb-5 flex justify-center md:justify-start">
+          <img
+            src="/assets/Logo_huber_Renta_car-removebg-preview.png"
+            alt="Huber Renta Car"
+            className="h-10 w-auto object-contain"
+          />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
           <div>
             <h4 className="font-semibold text-foreground mb-3 text-xs uppercase tracking-wide">
               Empresa
@@ -96,7 +103,7 @@ const Footer = () => {
             </ul>
           </div>
         </div>
-        <div className="border-t border-border pt-6">
+        <div className="border-t border-border pt-4">
           <p className="text-[11px] text-muted-foreground text-center">
             © 2026 RentCar. Todos los derechos reservados.
           </p>

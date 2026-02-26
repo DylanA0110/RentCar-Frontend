@@ -5,7 +5,7 @@ import { Button } from '@/shared/components/ui/button';
 
 const CTASection = () => {
   return (
-    <section className="py-24 bg-primary text-primary-foreground">
+    <section className="py-24 bg-primary/86 text-primary-foreground">
       <div className="container mx-auto text-center">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
