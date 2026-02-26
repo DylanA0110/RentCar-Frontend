@@ -5,7 +5,7 @@ import { extractApiErrorMessage } from '@/shared/api/api-error';
 export const inactivateVehiculo = async (id: string): Promise<Vehiculo> => {
   try {
     const { data } = await vehiculosApi.patch<Vehiculo>(`/${id}`, {
-      activo: false,
+      estado: 'en reparacion',
     });
     return data;
   } catch (error) {

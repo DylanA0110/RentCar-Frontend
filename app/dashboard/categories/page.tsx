@@ -1,14 +1,29 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useCategorias } from '@/modules/categorias/hook/useCategorias';
 import { CRUDList } from '@/shared/components/admin/crud-list';
-import { useState } from 'react';
 
 export default function CategoriesPage() {
+  const { categorias } = useCategorias();
+
   const columns = [
-    { key: 'name', label: 'Categoría' },
-    { key: 'priceRange', label: 'Rango de Precio' },
-    { key: 'vehicles', label: 'Vehículos', width: 'w-20' },
+    { key: 'nombre', label: 'Categoría' },
+    { key: 'descripcion', label: 'Descripción' },
+    { key: 'estado', label: 'Estado', width: 'w-32' },
   ];
+
+  const rows = useMemo(
+    () =>
+      (categorias ?? []).map((categoria) => ({
+        id: categoria.id,
+        nombre: categoria.nombre,
+        descripcion: categoria.descripcion?.trim() || 'Sin descripción',
+        estado:
+          categoria.estado?.toLowerCase() === 'activo' ? 'Activo' : 'Inactivo',
+      })),
+    [categorias],
+  );
 
   const handleEdit = (id: string) => {
     console.log('Edit category:', id);
@@ -24,7 +39,7 @@ export default function CategoriesPage() {
       description="Administra las categorías de vehículos"
       createHref="/dashboard/categories/new"
       columns={columns}
-      rows={[]}
+      rows={rows}
       onEdit={handleEdit}
       onDelete={handleDelete}
     />

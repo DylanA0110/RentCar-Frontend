@@ -3,10 +3,8 @@ import type { VechilesImagenes } from '../types/vehicle-img.interface';
 import { extractApiErrorMessage } from '@/shared/api/api-error';
 
 export interface CreateVehiculoImagenPayload {
-  vehiculoId: string;
+  modeloId: string;
   url: string;
-  altText: string;
-  esPrincipal: boolean;
 }
 
 export const createVehiculoImagen = async (

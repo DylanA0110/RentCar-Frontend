@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/shared/components/ui/button';
 import heroImage from '@/public/assets/hero-car.jpg';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const HeroSection = () => {
   return (
@@ -42,17 +43,19 @@ const HeroSection = () => {
 
           <div className="flex flex-wrap gap-4">
             <Button
+              asChild
               size="lg"
               className="rounded-2xl px-8 h-12 text-base transition-transform hover:scale-105"
             >
-              Reservar Ahora
+              <Link href="/catalog">Reservar Ahora</Link>
             </Button>
             <Button
+              asChild
               variant="outline"
               size="lg"
               className="rounded-2xl px-8 h-12 text-base"
             >
-              Ver Catalogo
+              <Link href="#catalogo">Ver Catalogo</Link>
             </Button>
           </div>
 
@@ -74,7 +77,7 @@ const HeroSection = () => {
             transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
             className="relative"
           >
-            <div className="absolute -inset-6 rounded-[32px] bg-gradient-to-br from-foreground/5 to-transparent" />
+            <div className="absolute -inset-6 rounded-4xl bg-linear-to-br from-foreground/5 to-transparent" />
             <motion.div
               initial={{ clipPath: 'inset(0 100% 0 0)' }}
               animate={{ clipPath: 'inset(0 0% 0 0)' }}

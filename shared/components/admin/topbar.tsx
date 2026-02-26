@@ -18,6 +18,7 @@ export function Topbar() {
     categories: 'Categorias',
     customers: 'Clientes',
     vehicles: 'Vehiculos',
+    modelos: 'Modelos',
     reservations: 'Reservas',
     payments: 'Pagos',
   };
@@ -41,7 +42,8 @@ export function Topbar() {
   });
 
   const vehicleLabel = vehicleQuery.data
-    ? `${vehicleQuery.data.marca} ${vehicleQuery.data.modelo}`
+    ? `${vehicleQuery.data.modelo?.marca ?? ''} ${vehicleQuery.data.modelo?.nombre ?? ''}`.trim() ||
+      vehicleQuery.data.placa
     : 'Editar Vehículo';
 
   const breadcrumbs = segments.map((segment, index) => {

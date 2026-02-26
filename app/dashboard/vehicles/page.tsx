@@ -17,6 +17,12 @@ import type {
   Vehiculo,
   VehiculoImagen,
 } from '@/modules/vehiculos/types/vehiculo.interface';
+import {
+  getVehiculoAnio,
+  getVehiculoCategoriaNombre,
+  getVehiculoNombre,
+  getVehiculoPrecioBaseDiario,
+} from '@/modules/vehiculos/utils/vehiculo-view';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { cn } from '@/shared/lib/utils';
@@ -73,11 +79,11 @@ export default function VehiclesPage() {
     if (!term) return vehiculos ?? [];
     return (vehiculos ?? []).filter((vehicle) => {
       const values = [
-        vehicle.marca,
-        vehicle.modelo,
+        getVehiculoNombre(vehicle),
         vehicle.placa,
-        vehicle.categoria?.nombre,
+        getVehiculoCategoriaNombre(vehicle),
         vehicle.estado,
+        vehicle.color,
       ];
       return values.some((value) =>
         String(value ?? '')
@@ -122,8 +128,9 @@ export default function VehiclesPage() {
   };
 
   const handleInactivate = async (vehicle: Vehiculo) => {
+    const vehicleName = getVehiculoNombre(vehicle);
     const confirmed = window.confirm(
-      `¿Estás seguro de poner como inactivo este vehículo (${vehicle.marca} ${vehicle.modelo})?`,
+      `¿Estás seguro de marcar en reparación este vehículo (${vehicleName})?`,
     );
 
     if (!confirmed) return;
@@ -170,7 +177,7 @@ export default function VehiclesPage() {
               setSearch(event.target.value);
               setPage(1);
             }}
-            placeholder="Buscar por marca, modelo, placa o categoria"
+            placeholder="Buscar por modelo, placa, categoría o estado"
           />
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -286,6 +293,11 @@ const VehicleCard = ({
   const hasImages = images.length > 0;
   const safeIndex = hasImages ? currentIndex % images.length : 0;
   const currentImage = hasImages ? images[safeIndex] : undefined;
+  const vehicleName = getVehiculoNombre(vehicle);
+  const vehicleCategory = getVehiculoCategoriaNombre(vehicle);
+  const vehicleYear = getVehiculoAnio(vehicle);
+  const vehiclePrice = getVehiculoPrecioBaseDiario(vehicle);
+  const isInRepair = vehicle.estado === 'en reparacion';
 
   return (
     <div className="group relative overflow-hidden rounded-3xl border border-border bg-card shadow-[0_20px_60px_-45px_rgba(15,23,42,0.6)] transition-all duration-300 hover:-translate-y-1">
@@ -294,7 +306,7 @@ const VehicleCard = ({
           <Image
             key={currentImage?.id}
             src={currentImage?.url ?? ''}
-            alt={currentImage?.altText ?? `${vehicle.marca} ${vehicle.modelo}`}
+            alt={vehicleName}
             fill
             sizes="(max-width: 1024px) 100vw, (max-width: 1536px) 50vw, 33vw"
             className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
@@ -331,10 +343,11 @@ const VehicleCard = ({
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-xl font-semibold text-foreground">
-              {vehicle.marca} {vehicle.modelo}
+              {vehicleName}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {vehicle.categoria?.nombre ?? 'Sin categoria'} · {vehicle.anio}
+              {vehicleCategory}
+              {vehicleYear ? ` · ${vehicleYear}` : ''}
             </p>
           </div>
           <div className="text-right">
@@ -342,7 +355,7 @@ const VehicleCard = ({
               Por dia
             </p>
             <p className="text-lg font-semibold text-foreground">
-              {formatPrecio(vehicle.precioPorDia)}
+              {vehiclePrice === null ? 'N/A' : formatPrecio(vehiclePrice)}
             </p>
           </div>
         </div>
@@ -350,16 +363,6 @@ const VehicleCard = ({
         <div className="flex flex-wrap gap-2">
           <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
             {vehicle.estado}
-          </span>
-          <span
-            className={cn(
-              'rounded-full px-3 py-1 text-xs font-medium',
-              vehicle.activo
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-slate-100 text-slate-600',
-            )}
-          >
-            {vehicle.activo ? 'Activo' : 'Inactivo'}
           </span>
           {hasImages && (
             <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
@@ -383,18 +386,18 @@ const VehicleCard = ({
             <button
               type="button"
               onClick={() => onInactivate(vehicle)}
-              disabled={!vehicle.activo || isInactivating}
+              disabled={isInRepair || isInactivating}
               className={cn(
                 'inline-flex h-8 w-8 items-center justify-center rounded-lg border transition',
-                !vehicle.activo
+                isInRepair
                   ? 'cursor-not-allowed border-slate-200 text-slate-300'
                   : 'border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
               )}
               aria-label="Inactivar vehículo"
               title={
-                vehicle.activo
-                  ? 'Inactivar vehículo'
-                  : 'El vehículo ya está inactivo'
+                isInRepair
+                  ? 'El vehículo ya está en reparación'
+                  : 'Marcar vehículo en reparación'
               }
             >
               <Trash2 size={14} />
@@ -412,14 +415,20 @@ const VehicleCard = ({
         {isExpanded && (
           <div className="rounded-2xl border border-border bg-secondary/40 p-4 text-sm text-foreground">
             <div className="grid gap-3 sm:grid-cols-2">
-              <DetailItem label="Marca" value={vehicle.marca} />
-              <DetailItem label="Modelo" value={vehicle.modelo} />
               <DetailItem
-                label="Categoria"
-                value={vehicle.categoria?.nombre ?? 'N/A'}
+                label="Marca"
+                value={vehicle.modelo?.marca ?? 'N/A'}
               />
+              <DetailItem
+                label="Modelo"
+                value={vehicle.modelo?.nombre ?? 'N/A'}
+              />
+              <DetailItem label="Categoria" value={vehicleCategory} />
               <DetailItem label="Estado" value={vehicle.estado} />
-              <DetailItem label="Ano" value={String(vehicle.anio)} />
+              <DetailItem
+                label="Año"
+                value={vehicleYear ? String(vehicleYear) : 'N/A'}
+              />
               <DetailItem label="Placa" value={vehicle.placa} />
             </div>
           </div>

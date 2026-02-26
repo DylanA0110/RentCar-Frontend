@@ -1,11 +1,19 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import Link from 'next/link';
+import { DayPicker, type DateRange } from 'react-day-picker';
+import { es } from 'date-fns/locale';
+import { format, isAfter, isBefore, isSameDay, parseISO } from 'date-fns';
+import { Search, SlidersHorizontal, CalendarDays, X } from 'lucide-react';
+import { useVehiculo } from '@/modules/vehiculos/hook/useVehiculo';
+import { useReservas } from '@/modules/reservas/hook/useReservas';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
-import { useVehiculo } from '@/modules/vehiculos/hook/useVehiculo';
+
+import 'react-day-picker/style.css';
+import { cn } from '@/shared/lib/utils';
+
 const priceRanges = [
   { label: 'Todos', min: 0, max: Infinity },
   { label: '$30–$50', min: 30, max: 50 },
@@ -13,30 +21,104 @@ const priceRanges = [
   { label: '$70+', min: 70, max: Infinity },
 ];
 
+const BLOCKING_STATUSES = new Set(['PENDIENTE', 'CONFIRMADA', 'EN_CURSO']);
+
+const toDate = (value: Date | string) => {
+  if (value instanceof Date) return value;
+  const parsed = parseISO(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const normalizeRange = (range?: DateRange) => {
+  if (!range?.from || !range?.to) return null;
+  const from =
+    isBefore(range.from, range.to) || isSameDay(range.from, range.to)
+      ? range.from
+      : range.to;
+  const to = isAfter(range.from, range.to) ? range.from : range.to;
+  return { from, to };
+};
+
+const doesOverlap = (
+  range: { from: Date; to: Date },
+  reservation: { from: Date; to: Date },
+) => {
+  return !(
+    isBefore(range.to, reservation.from) || isAfter(range.from, reservation.to)
+  );
+};
+
 const CatalogClient = () => {
   const { vehiculos, isLoading, isError, error, refetch } = useVehiculo();
+  const { reservas } = useReservas();
+
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [activePriceRange, setActivePriceRange] = useState(0);
+  const [selectedRange, setSelectedRange] = useState<DateRange | undefined>();
   const [showFilters, setShowFilters] = useState(false);
+
+  const selectedNormalizedRange = useMemo(
+    () => normalizeRange(selectedRange),
+    [selectedRange],
+  );
 
   const categories = useMemo(() => {
     const unique = new Set(
       (vehiculos ?? [])
-        .map((vehiculo) => vehiculo.categoria?.nombre)
-        .filter(Boolean),
+        .map((vehiculo) => vehiculo.modelo?.categoria?.nombre)
+        .filter(
+          (nombre): nombre is string => typeof nombre === 'string' && !!nombre,
+        ),
     );
     return ['Todos', ...Array.from(unique)];
   }, [vehiculos]);
 
+  const availabilityByVehicle = useMemo(() => {
+    const map = new Map<string, boolean>();
+
+    (vehiculos ?? []).forEach((vehiculo) => {
+      const hasRange = Boolean(selectedNormalizedRange);
+      if (!hasRange || !selectedNormalizedRange) {
+        map.set(vehiculo.id, true);
+        return;
+      }
+
+      const blockedReservations = (reservas ?? [])
+        .filter(
+          (reserva) =>
+            reserva.vehiculo?.id === vehiculo.id &&
+            BLOCKING_STATUSES.has(reserva.estado),
+        )
+        .map((reserva) => {
+          const start = toDate(reserva.fechaInicio);
+          const end = toDate(reserva.fechaFin);
+          if (!start || !end) return null;
+          const from =
+            isBefore(start, end) || isSameDay(start, end) ? start : end;
+          const to = isAfter(start, end) ? start : end;
+          return { from, to };
+        })
+        .filter((item): item is { from: Date; to: Date } => Boolean(item));
+
+      const overlaps = blockedReservations.some((interval) =>
+        doesOverlap(selectedNormalizedRange, interval),
+      );
+      map.set(vehiculo.id, !overlaps);
+    });
+
+    return map;
+  }, [vehiculos, reservas, selectedNormalizedRange]);
+
   const filtered = useMemo(() => {
     return (vehiculos ?? []).filter((v) => {
-      const name = `${v.marca} ${v.modelo}`.trim();
-      const category = v.categoria?.nombre ?? 'Sin categoria';
-      const precio = Number(v.precioPorDia);
+      const name = `${v.modelo?.marca ?? ''} ${v.modelo?.nombre ?? ''}`.trim();
+      const category = v.modelo?.categoria?.nombre ?? 'Sin categoria';
+      const precio = Number(v.modelo?.precioBaseDiario ?? 0);
       const matchSearch =
         name.toLowerCase().includes(search.toLowerCase()) ||
-        category.toLowerCase().includes(search.toLowerCase());
+        category.toLowerCase().includes(search.toLowerCase()) ||
+        (v.placa ?? '').toLowerCase().includes(search.toLowerCase());
       const matchCategory =
         activeCategory === 'Todos' || category === activeCategory;
       const range = priceRanges[activePriceRange];
@@ -47,7 +129,9 @@ const CatalogClient = () => {
   }, [vehiculos, search, activeCategory, activePriceRange]);
 
   const activeFiltersCount =
-    (activeCategory !== 'Todos' ? 1 : 0) + (activePriceRange !== 0 ? 1 : 0);
+    (activeCategory !== 'Todos' ? 1 : 0) +
+    (activePriceRange !== 0 ? 1 : 0) +
+    (selectedNormalizedRange ? 1 : 0);
 
   return (
     <div className="pt-24 pb-16">
@@ -57,7 +141,8 @@ const CatalogClient = () => {
             Catálogo
           </h1>
           <p className="text-muted-foreground">
-            Encuentra el vehículo perfecto para ti.
+            Elige fechas primero y mira qué carro está disponible antes de
+            reservar.
           </p>
         </div>
 
@@ -65,20 +150,13 @@ const CatalogClient = () => {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar vehículo..."
+              placeholder="Buscar por modelo, categoría o placa..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 h-11 rounded-xl border-border"
             />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
           </div>
+
           <Button
             variant="outline"
             className="h-11 rounded-xl gap-2"
@@ -93,6 +171,87 @@ const CatalogClient = () => {
             )}
           </Button>
         </div>
+
+        {showFilters && (
+          <div className="rounded-2xl p-6 mb-6 border border-border/50 bg-card space-y-5">
+            <div>
+              <h3 className="mb-2 font-semibold text-foreground text-sm">
+                Fechas de viaje
+              </h3>
+              <div className="inline-block rounded-xl border border-border bg-background p-1.5">
+                <DayPicker
+                  mode="range"
+                  locale={es}
+                  selected={selectedRange}
+                  onSelect={setSelectedRange}
+                  disabled={{ before: new Date() }}
+                  className="catalog-calendar text-xs"
+                  classNames={{
+                    month: 'space-y-1',
+                    caption: 'flex justify-center py-0.5 relative items-center',
+                    caption_label: 'text-xs font-medium',
+                    nav_button: 'h-6 w-6',
+                    table: 'w-full border-collapse',
+                    head_row: 'flex gap-1',
+                    head_cell:
+                      'text-muted-foreground rounded-md w-7 font-normal text-[0.68rem]',
+                    row: 'flex w-full mt-1 gap-1',
+                    cell: 'h-7 w-7 text-center text-xs p-0 relative',
+                    day: 'h-7 w-7 p-0 font-normal rounded-md',
+                  }}
+                  modifiersClassNames={{
+                    range_start:
+                      '!bg-accent !text-accent-foreground rounded-md',
+                    range_middle: '!bg-accent/20 !text-foreground rounded-none',
+                    range_end: '!bg-accent !text-accent-foreground rounded-md',
+                    selected: '!bg-accent !text-accent-foreground rounded-md',
+                  }}
+                />
+              </div>
+              {selectedNormalizedRange && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Rango: {format(selectedNormalizedRange.from, 'dd/MM/yyyy')} →{' '}
+                  {format(selectedNormalizedRange.to, 'dd/MM/yyyy')}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-foreground text-sm">
+                Rango de precio
+              </h3>
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={() => {
+                    setActiveCategory('Todos');
+                    setActivePriceRange(0);
+                    setSelectedRange(undefined);
+                    setSearch('');
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+
+            <div className="flex gap-2 flex-wrap">
+              {priceRanges.map((range, i) => (
+                <button
+                  key={range.label}
+                  onClick={() => setActivePriceRange(i)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
+                    activePriceRange === i
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-card text-muted-foreground border-border hover:border-foreground/30'
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
           {categories.map((cat) => (
@@ -109,47 +268,6 @@ const CatalogClient = () => {
             </button>
           ))}
         </div>
-
-        {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-section-alt rounded-2xl p-6 mb-6 border border-border/50"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground text-sm">
-                Rango de precio
-              </h3>
-              {activeFiltersCount > 0 && (
-                <button
-                  onClick={() => {
-                    setActiveCategory('Todos');
-                    setActivePriceRange(0);
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Limpiar filtros
-                </button>
-              )}
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {priceRanges.map((range, i) => (
-                <button
-                  key={range.label}
-                  onClick={() => setActivePriceRange(i)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
-                    activePriceRange === i
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-card text-muted-foreground border-border hover:border-foreground/30'
-                  }`}
-                >
-                  {range.label}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
 
         {isLoading && (
           <p className="text-sm text-muted-foreground mb-6">
@@ -177,67 +295,92 @@ const CatalogClient = () => {
 
         {!isLoading && !isError && (
           <p className="text-sm text-muted-foreground mb-6">
-            {filtered.length} vehículo{filtered.length !== 1 ? 's' : ''}{' '}
-            disponible{filtered.length !== 1 ? 's' : ''}
+            {filtered.length} vehículo{filtered.length !== 1 ? 's' : ''}
           </p>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((v, i) =>
-            (() => {
-              const imagenPrincipal =
-                v.imagenes?.find((img) => img.esPrincipal && img.url)?.url ??
-                v.imagenes?.find((img) => img.url)?.url ??
-                '';
-              return (
-                <motion.div
-                  key={v.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05, duration: 0.4 }}
-                  className="group bg-card rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-border/50"
-                >
-                  <div className="aspect-video overflow-hidden">
-                    <img
-                      src={
-                        imagenPrincipal ||
-                        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"%3E%3Crect width="640" height="360" fill="%23e5e7eb"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236b7280" font-size="24"%3ESin imagen%3C/text%3E%3C/svg%3E'
+          {filtered.map((v) => {
+            const imagenPrincipal =
+              v.imagenes?.find((img) => img.url)?.url ??
+              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"%3E%3Crect width="640" height="360" fill="%23e5e7eb"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236b7280" font-size="24"%3ESin imagen%3C/text%3E%3C/svg%3E';
+
+            const isAvailable = availabilityByVehicle.get(v.id) ?? true;
+
+            return (
+              <article
+                key={v.id}
+                className={cn(
+                  'group bg-card rounded-2xl shadow-sm transition-all duration-300 overflow-hidden border border-border/50',
+                  isAvailable ? 'hover:shadow-lg' : 'opacity-85',
+                )}
+              >
+                <div className="aspect-video overflow-hidden relative">
+                  <img
+                    src={imagenPrincipal}
+                    alt={
+                      `${v.modelo?.marca ?? ''} ${v.modelo?.nombre ?? ''}`.trim() ||
+                      'Vehículo'
+                    }
+                    className={cn(
+                      'w-full h-full object-cover transition-transform duration-500',
+                      isAvailable ? 'group-hover:scale-105' : 'grayscale',
+                    )}
+                    loading="lazy"
+                  />
+                  {selectedNormalizedRange && (
+                    <span
+                      className={cn(
+                        'absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-medium',
+                        isAvailable
+                          ? 'bg-success/15 text-success'
+                          : 'bg-muted text-muted-foreground',
+                      )}
+                    >
+                      {isAvailable ? 'Disponible' : 'Ocupado en ese rango'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
+                      {v.modelo?.categoria?.nombre ?? 'Sin categoría'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {v.modelo?.anio ?? 'N/A'} · {v.placa}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-semibold text-foreground mb-3">
+                    {v.modelo?.marca} {v.modelo?.nombre}
+                  </h3>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-2xl font-semibold text-foreground">
+                        ${Number(v.modelo?.precioBaseDiario ?? 0).toFixed(2)}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        /día
+                      </span>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      className="rounded-xl"
+                      asChild
+                      disabled={
+                        Boolean(selectedNormalizedRange) && !isAvailable
                       }
-                      alt={`${v.marca} ${v.modelo}`}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
+                    >
+                      <Link href={`/catalog/${v.id}`}>Reservar</Link>
+                    </Button>
                   </div>
-                  <div className="p-6">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
-                        {v.categoria?.nombre ?? 'Sin categoria'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {v.anio} · {v.estado}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-3">
-                      {v.marca} {v.modelo}
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-2xl font-semibold text-foreground">
-                          ${Number(v.precioPorDia).toFixed(2)}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          /día
-                        </span>
-                      </div>
-                      <Button size="sm" className="rounded-xl">
-                        Reservar
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })(),
-          )}
+                </div>
+              </article>
+            );
+          })}
         </div>
 
         {!isLoading && !isError && filtered.length === 0 && (
@@ -252,8 +395,10 @@ const CatalogClient = () => {
                 setSearch('');
                 setActiveCategory('Todos');
                 setActivePriceRange(0);
+                setSelectedRange(undefined);
               }}
             >
+              <X className="w-4 h-4" />
               Limpiar filtros
             </Button>
           </div>

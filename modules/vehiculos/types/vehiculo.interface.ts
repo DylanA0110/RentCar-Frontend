@@ -1,38 +1,48 @@
-export interface Vehiculo {
-  id: string;
-  marca: string;
-  modelo: string;
-  anio: number;
-  placa: string;
-  precioPorDia: string;
-  estado: string;
-  activo: boolean;
-  categoria: Categoria;
-  reservas?: unknown[];
-  imagenes?: VehiculoImagen[];
-}
+export type EstadoGeneral = 'activo' | 'inactivo';
 
-export interface VehiculoImagen {
-  id: string;
-  url: string | null;
-  altText: string | null;
-  storagePath: string | null;
-  esPrincipal: boolean;
-}
-
-export interface VehiculoPayload {
-  marca: string;
-  modelo: string;
-  anio: number;
-  placa: string;
-  precioPorDia: string;
-  estado: string;
-  activo: boolean;
-  categoriaId: string;
-}
+export type VehiculoEstado = 'disponible' | 'rentado' | 'en reparacion';
 
 export interface Categoria {
   id: string;
   nombre: string;
-  descripcion: string;
+  descripcion?: string;
+  estado?: EstadoGeneral;
+}
+
+export interface VehiculoImagen {
+  id: string;
+  url: string;
+  createdAt?: string;
+}
+
+export interface Modelo {
+  id: string;
+  marca: string;
+  nombre: string;
+  anio: number;
+  tipoCombustible?: string;
+  capacidadPasajeros?: number;
+  estado: EstadoGeneral;
+  precioBaseDiario: number | string;
+  categoria?: Categoria;
+  imagenes?: VehiculoImagen[];
+}
+
+export interface Vehiculo {
+  id: string;
+  placa: string;
+  color?: string;
+  estado: VehiculoEstado;
+  kilometraje?: number | string;
+  modelo?: Modelo;
+  reservas?: unknown[];
+  imagenes?: VehiculoImagen[];
+}
+
+export interface VehiculoPayload {
+  placa: string;
+  color?: string;
+  estado: VehiculoEstado;
+  kilometraje?: number;
+  modeloId: string;
 }

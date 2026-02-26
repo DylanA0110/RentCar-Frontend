@@ -1,17 +1,16 @@
-export interface CategoriaVehiculo {
+export interface CategoriaModelo {
   id: string;
   marca: string;
-  modelo: string;
+  nombre: string;
   anio: number;
-  placa: string;
-  precioPorDia: string;
-  estado: string;
-  activo: boolean;
+  precioBaseDiario: number | string;
+  estado: 'activo' | 'inactivo';
 }
 
 export interface Categoria {
   id: string;
   nombre: string;
-  descripcion: string;
-  vehiculos: CategoriaVehiculo[];
+  descripcion?: string;
+  estado: 'activo' | 'inactivo';
+  modelos?: CategoriaModelo[];
 }

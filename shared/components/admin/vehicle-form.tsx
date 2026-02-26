@@ -13,36 +13,31 @@ import { updateVehiculo } from '@/modules/vehiculos/actions/update-vehiculo';
 import { getVehiculoById } from '@/modules/vehiculos/actions/get-vehiculo-by-id';
 import { uploadVehiculoImagen } from '@/modules/vehiculos-imagenes/actions/upload-vehiculo-imagen';
 import { removeVehiculoImagen } from '@/modules/vehiculos-imagenes/actions/remove-vehiculo-imagen';
-import { setPrincipalVehiculoImagen } from '@/modules/vehiculos-imagenes/actions/set-principal-vehiculo-imagen';
+import { useModelos } from '@/modules/modelos/hook/useModelos';
 import type {
   VehiculoImagen,
   VehiculoPayload,
+  VehiculoEstado,
 } from '@/modules/vehiculos/types/vehiculo.interface';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { ImageGallery } from './image-gallery';
 import type { VehicleImageDraft } from './image-gallery';
-import { CategorySelect } from './category-select';
 
 const VehicleSchema = z.object({
-  marca: z.string().trim().min(2, 'La marca debe tener al menos 2 caracteres'),
-  modelo: z.string().trim().min(1, 'El modelo es obligatorio'),
-  anio: z
-    .number()
-    .int('El año debe ser entero')
-    .min(1990, 'El año debe ser mayor o igual a 1990')
-    .max(new Date().getFullYear() + 1, 'El año no es válido'),
+  modeloId: z.string().trim().min(1, 'Debes seleccionar un modelo'),
   placa: z.string().trim().min(3, 'La placa es obligatoria'),
-  precioPorDia: z
+  color: z.string().trim().optional(),
+  kilometraje: z
     .string()
     .trim()
+    .optional()
     .refine((value) => {
+      if (!value) return true;
       const parsed = Number(value);
-      return Number.isFinite(parsed) && parsed > 0;
-    }, 'El precio por día debe ser mayor que 0'),
-  estado: z.enum(['Disponible', 'Mantenimiento', 'Alquilado']),
-  activo: z.boolean(),
-  categoriaId: z.string().trim().min(1, 'Debes seleccionar una categoría'),
+      return Number.isFinite(parsed) && parsed >= 0;
+    }, 'El kilometraje debe ser un número mayor o igual a 0'),
+  estado: z.enum(['disponible', 'en reparacion', 'rentado']),
 });
 
 type VehicleFormData = z.infer<typeof VehicleSchema>;
@@ -57,19 +52,18 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
   const isEditing = Boolean(vehicleId);
 
   const [formData, setFormData] = useState<VehicleFormData>({
-    marca: '',
-    modelo: '',
-    anio: new Date().getFullYear(),
+    modeloId: '',
     placa: '',
-    precioPorDia: '',
-    estado: 'Disponible',
-    activo: true,
-    categoriaId: '',
+    color: '',
+    kilometraje: '',
+    estado: 'disponible',
   });
   const [images, setImages] = useState<VehicleImageDraft[]>([]);
   const [existingImages, setExistingImages] = useState<VehiculoImagen[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { modelos, isLoading: isLoadingModelos } = useModelos();
 
   const vehiculoQuery = useQuery({
     queryKey: ['vehiculo', vehicleId],
@@ -82,18 +76,20 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
     if (!vehiculoQuery.data) return;
 
     const vehiculo = vehiculoQuery.data;
+    const estado: VehiculoEstado =
+      vehiculo.estado === 'en reparacion' || vehiculo.estado === 'rentado'
+        ? vehiculo.estado
+        : 'disponible';
+
     setFormData({
-      marca: vehiculo.marca,
-      modelo: vehiculo.modelo,
-      anio: vehiculo.anio,
+      modeloId: vehiculo.modelo?.id ?? '',
       placa: vehiculo.placa,
-      precioPorDia: vehiculo.precioPorDia,
-      estado:
-        vehiculo.estado === 'Mantenimiento' || vehiculo.estado === 'Alquilado'
-          ? vehiculo.estado
-          : 'Disponible',
-      activo: vehiculo.activo,
-      categoriaId: vehiculo.categoria?.id ?? '',
+      color: vehiculo.color ?? '',
+      kilometraje:
+        vehiculo.kilometraje === undefined || vehiculo.kilometraje === null
+          ? ''
+          : String(vehiculo.kilometraje),
+      estado,
     });
     setExistingImages(vehiculo.imagenes ?? []);
   }, [vehiculoQuery.data]);
@@ -120,62 +116,35 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
     }
   };
 
-  const handleSetExistingPrimary = async (imageId: string) => {
-    try {
-      await setPrincipalVehiculoImagen(imageId);
-      setExistingImages((prev) =>
-        prev.map((image) => ({ ...image, esPrincipal: image.id === imageId })),
-      );
-      await refreshCaches(vehicleId);
-      toast.success('Imagen principal actualizada');
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo establecer la imagen principal',
-      );
-    }
-  };
-
   const handleReplaceExistingImage = async (
     imageId: string,
     file: File,
-    options?: { altText?: string; esPrincipal?: boolean },
+    _options?: { altText?: string; esPrincipal?: boolean },
   ) => {
     if (!vehicleId) return;
 
     try {
-      const existing = existingImages.find((image) => image.id === imageId);
-
       await removeVehiculoImagen(imageId);
       const uploaded = await uploadVehiculoImagen({
         vehiculoId: vehicleId,
         file,
-        altText: options?.altText ?? existing?.altText ?? 'Imagen del vehículo',
-        esPrincipal: options?.esPrincipal ?? existing?.esPrincipal,
       });
 
       const mappedImage: VehiculoImagen = {
         id: uploaded.id,
         url: uploaded.url,
-        altText: uploaded.altText,
-        storagePath: uploaded.storagePath,
-        esPrincipal: uploaded.esPrincipal,
+        createdAt:
+          uploaded.createdAt instanceof Date
+            ? uploaded.createdAt.toISOString()
+            : uploaded.createdAt,
       };
 
       setExistingImages((prev) => {
         const withoutOld = prev.filter((image) => image.id !== imageId);
-        if (mappedImage.esPrincipal) {
-          return [
-            ...withoutOld.map((image) => ({ ...image, esPrincipal: false })),
-            mappedImage,
-          ];
-        }
         return [...withoutOld, mappedImage];
       });
 
       await refreshCaches(vehicleId);
-
       toast.success('Imagen reemplazada correctamente');
     } catch (error) {
       toast.error(
@@ -189,13 +158,11 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
   const handleTextChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const { name, value, type } = event.target;
-    const nextValue =
-      type === 'checkbox' ? (event.target as HTMLInputElement).checked : value;
+    const { name, value } = event.target;
 
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'anio' ? Number(nextValue) : nextValue,
+      [name]: value,
     }));
 
     if (errors[name]) {
@@ -227,8 +194,13 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
     setIsSubmitting(true);
     try {
       const payload: VehiculoPayload = {
-        ...validation.data,
-        precioPorDia: Number(validation.data.precioPorDia).toFixed(2),
+        modeloId: validation.data.modeloId,
+        placa: validation.data.placa,
+        color: validation.data.color || undefined,
+        estado: validation.data.estado,
+        kilometraje: validation.data.kilometraje
+          ? Number(validation.data.kilometraje)
+          : undefined,
       };
 
       const vehiculo =
@@ -242,8 +214,6 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
             uploadVehiculoImagen({
               vehiculoId: vehiculo.id,
               file: image.file,
-              altText: image.altText,
-              esPrincipal: image.esPrincipal,
             }),
           ),
         );
@@ -326,33 +296,24 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
             </h2>
 
             <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Marca" error={errors.marca}>
-                <Input
-                  name="marca"
-                  value={formData.marca}
+              <Field label="Modelo" error={errors.modeloId}>
+                <select
+                  name="modeloId"
+                  value={formData.modeloId}
                   onChange={handleTextChange}
-                  placeholder="Toyota"
-                />
-              </Field>
-
-              <Field label="Modelo" error={errors.modelo}>
-                <Input
-                  name="modelo"
-                  value={formData.modelo}
-                  onChange={handleTextChange}
-                  placeholder="RAV4"
-                />
-              </Field>
-
-              <Field label="Año" error={errors.anio}>
-                <Input
-                  type="number"
-                  name="anio"
-                  min={1990}
-                  max={new Date().getFullYear() + 1}
-                  value={formData.anio}
-                  onChange={handleTextChange}
-                />
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">
+                    {isLoadingModelos
+                      ? 'Cargando modelos...'
+                      : 'Selecciona un modelo'}
+                  </option>
+                  {(modelos ?? []).map((modelo) => (
+                    <option key={modelo.id} value={modelo.id}>
+                      {modelo.marca} {modelo.nombre} ({modelo.anio})
+                    </option>
+                  ))}
+                </select>
               </Field>
 
               <Field label="Placa" error={errors.placa}>
@@ -364,12 +325,21 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
                 />
               </Field>
 
-              <Field label="Precio por día" error={errors.precioPorDia}>
+              <Field label="Color" error={errors.color}>
                 <Input
-                  name="precioPorDia"
-                  value={formData.precioPorDia}
+                  name="color"
+                  value={formData.color ?? ''}
                   onChange={handleTextChange}
-                  placeholder="149.90"
+                  placeholder="Rojo"
+                />
+              </Field>
+
+              <Field label="Kilometraje" error={errors.kilometraje}>
+                <Input
+                  name="kilometraje"
+                  value={formData.kilometraje ?? ''}
+                  onChange={handleTextChange}
+                  placeholder="35000"
                 />
               </Field>
 
@@ -380,24 +350,11 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
                   onChange={handleTextChange}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="Disponible">Disponible</option>
-                  <option value="Mantenimiento">Mantenimiento</option>
-                  <option value="Alquilado">Alquilado</option>
+                  <option value="disponible">Disponible</option>
+                  <option value="en reparacion">En reparación</option>
+                  <option value="rentado">Rentado</option>
                 </select>
               </Field>
-            </div>
-
-            <div className="mt-6">
-              <label className="mb-2 block text-sm font-medium text-foreground">
-                Categoría
-              </label>
-              <CategorySelect
-                value={formData.categoriaId}
-                onChange={(categoriaId) =>
-                  setFormData((prev) => ({ ...prev, categoriaId }))
-                }
-                error={errors.categoriaId}
-              />
             </div>
           </div>
         </div>
@@ -409,9 +366,6 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
             onChange={setImages}
             onDeleteExistingImage={
               isEditing ? handleDeleteExistingImage : undefined
-            }
-            onSetExistingPrimary={
-              isEditing ? handleSetExistingPrimary : undefined
             }
             onReplaceExistingImage={
               isEditing ? handleReplaceExistingImage : undefined

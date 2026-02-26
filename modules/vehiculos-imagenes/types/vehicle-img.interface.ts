@@ -1,19 +1,14 @@
 export interface VechilesImagenes {
-    id:          string;
-    url:         string;
-    altText:     string;
-    storagePath: null;
-    esPrincipal: boolean;
-    vehiculo:    Vehiculo;
+  id: string;
+  url: string;
+  createdAt?: Date | string;
+  modelo?: Modelo;
 }
 
-export interface Vehiculo {
-    id:           string;
-    marca:        string;
-    modelo:       string;
-    anio:         number;
-    placa:        string;
-    precioPorDia: string;
-    estado:       string;
-    activo:       boolean;
+export interface Modelo {
+  id: string;
+  marca: string;
+  nombre: string;
+  anio: number;
+  estado: 'activo' | 'inactivo';
 }

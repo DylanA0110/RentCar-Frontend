@@ -13,18 +13,13 @@ const CatalogPreview = () => {
   }, [vehiculos]);
 
   const getVehicleImage = (vehiculo: (typeof previewVehicles)[number]) => {
-    const principal = vehiculo.imagenes?.find(
-      (img) => img.esPrincipal && img.url?.trim(),
-    );
-    if (principal?.url) return principal.url;
-
     const firstValid = vehiculo.imagenes?.find((img) => img.url?.trim());
     if (firstValid?.url) return firstValid.url;
 
     return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400"%3E%3Crect width="600" height="400" fill="%23e5e7eb"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%236b7280" font-size="22"%3ESin imagen%3C/text%3E%3C/svg%3E';
   };
 
-  const formatPrecio = (precio: string) => {
+  const formatPrecio = (precio: number | string) => {
     const value = Number(precio);
     if (!Number.isFinite(value)) return precio;
     return `$${value.toFixed(2)}/día`;
@@ -68,24 +63,32 @@ const CatalogPreview = () => {
                 <div className="aspect-video overflow-hidden">
                   <img
                     src={getVehicleImage(vehicle)}
-                    alt={`${vehicle.marca} ${vehicle.modelo}`}
+                    alt={
+                      `${vehicle.modelo?.marca ?? ''} ${vehicle.modelo?.nombre ?? ''}`.trim() ||
+                      'Vehículo'
+                    }
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />
                 </div>
                 <div className="p-6">
                   <p className="mb-1 text-sm text-muted-foreground">
-                    {vehicle.categoria?.nombre ?? 'Sin categoría'}
+                    {vehicle.modelo?.categoria?.nombre ?? 'Sin categoría'}
                   </p>
                   <h3 className="mb-2 text-lg font-semibold text-foreground">
-                    {vehicle.marca} {vehicle.modelo}
+                    {vehicle.modelo?.marca} {vehicle.modelo?.nombre}
                   </h3>
                   <div className="flex items-center justify-between">
                     <span className="text-xl font-medium text-foreground">
-                      {formatPrecio(vehicle.precioPorDia)}
+                      {formatPrecio(vehicle.modelo?.precioBaseDiario ?? 0)}
                     </span>
-                    <Button variant="outline" size="sm" className="rounded-xl">
-                      Reservar
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl"
+                      asChild
+                    >
+                      <Link href={`/catalog/${vehicle.id}`}>Reservar</Link>
                     </Button>
                   </div>
                 </div>

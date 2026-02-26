@@ -1,45 +1,50 @@
-import { vehiculosImgApi } from '../api/vehicles.imagenes.api';
 import type { VechilesImagenes } from '../types/vehicle-img.interface';
 import { extractApiErrorMessage } from '@/shared/api/api-error';
+import { getVehiculoById } from '@/modules/vehiculos/actions/get-vehiculo-by-id';
+import { createVehiculoImagen } from './create-vehiculo-imagen';
 
 export interface UploadVehiculoImagenPayload {
   vehiculoId: string;
   file: File;
-  altText?: string;
-  esPrincipal?: boolean;
 }
+
+const fileToDataUrl = async (file: File): Promise<string> => {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error('No se pudo convertir la imagen a URL'));
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
+    reader.readAsDataURL(file);
+  });
+};
 
 export const uploadVehiculoImagen = async (
   payload: UploadVehiculoImagenPayload,
 ): Promise<VechilesImagenes> => {
   try {
-    const formData = new FormData();
-    formData.append('file', payload.file);
+    const vehiculo = await getVehiculoById(payload.vehiculoId);
+    const modeloId = vehiculo.modelo?.id;
 
-    if (payload.altText?.trim()) {
-      formData.append('altText', payload.altText.trim());
+    if (!modeloId) {
+      throw new Error('El vehículo no tiene un modelo asociado');
     }
 
-    if (typeof payload.esPrincipal === 'boolean') {
-      formData.append('esPrincipal', String(payload.esPrincipal));
-    }
+    const dataUrl = await fileToDataUrl(payload.file);
 
-    const { data } = await vehiculosImgApi.post<VechilesImagenes>(
-      `/upload/${payload.vehiculoId}`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      },
-    );
-
-    return data;
+    return await createVehiculoImagen({
+      modeloId,
+      url: dataUrl,
+    });
   } catch (error) {
     const apiMessage = extractApiErrorMessage(
       error,
-      'No se pudo subir la imagen del vehículo',
+      'No se pudo crear la imagen del modelo',
     );
-    throw new Error(`No se pudo subir la imagen del vehículo: ${apiMessage}`);
+    throw new Error(`No se pudo crear la imagen del modelo: ${apiMessage}`);
   }
 };

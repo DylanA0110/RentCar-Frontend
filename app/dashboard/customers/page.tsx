@@ -1,21 +1,44 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useClientes } from '@/modules/clientes/hook/useClientes';
 import { CRUDList } from '@/shared/components/admin/crud-list';
-import { useState } from 'react';
+
+const formatFechaRegistro = (value: Date | string) => {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return new Intl.DateTimeFormat('es-DO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+};
 
 export default function CustomersPage() {
+  const { clientes } = useClientes();
+
   const columns = [
-    { key: 'name', label: 'Nombre' },
+    { key: 'nombres', label: 'Nombres' },
+    { key: 'apellidos', label: 'Apellidos' },
     { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Teléfono' },
-    { key: 'joinedDate', label: 'Fecha de Registro' },
-    { key: 'totalRentals', label: 'Alquileres', width: 'w-20' },
+    { key: 'telefono', label: 'Teléfono' },
+    { key: 'fechaRegistro', label: 'Fecha de registro' },
   ];
 
-  //   const formattedCustomers = customerList.map(c => ({
-  //     ...c,
-  //     totalRentals: `${c.totalRentals}`,
-  //   }))
+  const rows = useMemo(
+    () =>
+      (clientes ?? []).map((cliente) => ({
+        id: cliente.id,
+        nombres: cliente.nombres,
+        apellidos: cliente.apellidos,
+        email: cliente.email,
+        telefono: cliente.telefono,
+        fechaRegistro: formatFechaRegistro(cliente.fechaRegistro),
+      })),
+    [clientes],
+  );
 
   const handleEdit = (id: string) => {
     console.log('Edit customer:', id);
@@ -31,7 +54,7 @@ export default function CustomersPage() {
       description="Administra tus clientes registrados"
       createHref="/dashboard/customers/new"
       columns={columns}
-      rows={[]}
+      rows={rows}
       onEdit={handleEdit}
       onDelete={handleDelete}
     />

@@ -28,14 +28,19 @@ const menuItems = [
     icon: Car,
   },
   {
-    label: 'Usuarios',
-    href: '/dashboard/users',
-    icon: Users,
+    label: 'Modelos',
+    href: '/dashboard/modelos',
+    icon: Car,
   },
   {
     label: 'Clientes',
     href: '/dashboard/customers',
     icon: BookOpen,
+  },
+  {
+    label: 'Empleados',
+    href: '/dashboard/employeers',
+    icon: Users,
   },
   {
     label: 'Categorías',
@@ -143,11 +148,7 @@ export function Sidebar() {
           className={`border-t border-sidebar-border p-6 ${
             isCollapsed ? 'md:p-4 md:text-center' : 'md:p-6'
           }`}
-        >
-          <p className="text-xs text-sidebar-foreground/70">
-            {isCollapsed ? 'RC v1.0' : 'RentCar Admin v1.0'}
-          </p>
-        </div>
+        ></div>
       </aside>
 
       {/* Spacer for Desktop */}
