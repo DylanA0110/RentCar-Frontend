@@ -310,9 +310,7 @@ export default function VehicleReservationClient({
 
       setCheckoutStep('summary');
 
-      toast.success(
-        `Reserva ${reserva.id} creada. Pago ${pago.id} registrado.`,
-      );
+      toast.success(`Reserva creada exitosamente`);
       setTimeout(() => {
         router.push('/catalog');
       }, 1500);
@@ -485,7 +483,9 @@ export default function VehicleReservationClient({
                   isPricingLoading ||
                   isReservationsLoading
                 }
-                onClick={() => setCheckoutStep('payment')}
+                onClick={
+                  () => setCheckoutStep('payment')
+                }
               >
                 Continuar a pago
               </Button>
