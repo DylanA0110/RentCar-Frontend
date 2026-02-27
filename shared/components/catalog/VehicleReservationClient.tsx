@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -26,7 +27,6 @@ import { useReservas } from '@/modules/reservas/hook/useReservas';
 import { getPrecioModeloPorFecha } from '@/modules/modelos/actions/get-precio-modelo-por-fecha';
 import { createReserva } from '@/modules/reservas/actions/create-reserva';
 import { createPago } from '@/modules/pagos/actions/create-pago';
-import { useClientes } from '@/modules/clientes/hook/useClientes';
 import { getVehiculoNombre } from '@/modules/vehiculos/utils/vehiculo-view';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -37,7 +37,6 @@ import 'react-day-picker/style.css';
 interface VehicleReservationClientProps {
   vehicleId: string;
 }
-
 type PricingDay = {
   fecha: string;
   precioDiario: number;
@@ -49,7 +48,7 @@ const MIN_DAYS = 1;
 
 const toDate = (value: Date | string) => {
   if (value instanceof Date) return value;
-  const parsed = parseISO(value);
+  const parsed = parseISO(value as string);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
@@ -91,8 +90,11 @@ export default function VehicleReservationClient({
   vehicleId,
 }: VehicleReservationClientProps) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { reservas, isLoading: isReservationsLoading } = useReservas();
-  const { clientes, isLoading: isClientsLoading } = useClientes();
+  // Default client ID for reservation
+  const DEFAULT_CLIENT_ID = '547b4341-d696-41fb-8b82-01d343b8050b';
+  // No need to fetch clients for this flow
   const {
     data: vehiculo,
     isLoading: isVehicleLoading,
@@ -115,10 +117,6 @@ export default function VehicleReservationClient({
     'summary',
   );
 
-  const [cardHolder, setCardHolder] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvc, setCvc] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const vehicleImages = useMemo(() => {
@@ -234,12 +232,8 @@ export default function VehicleReservationClient({
 
   const totalDays = pricingDays.length;
   const canContinueToPayment = totalDays >= MIN_DAYS;
-  const defaultCliente = useMemo(
-    () =>
-      (clientes ?? []).find((cliente) => cliente.estado === 'activo') ??
-      clientes?.[0],
-    [clientes],
-  );
+  // Use default client object
+  const defaultCliente = useMemo(() => ({ id: DEFAULT_CLIENT_ID }), []);
   const draftNormalizedRange = normalizeRange(draftRange);
   const canApplyDraftDates = Boolean(
     draftNormalizedRange?.from && draftNormalizedRange?.to,
@@ -249,7 +243,9 @@ export default function VehicleReservationClient({
     [draftRange],
   );
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
     if (!vehiculo) {
       toast.error('No se pudo cargar el vehículo');
       return;
@@ -260,18 +256,14 @@ export default function VehicleReservationClient({
       return;
     }
 
-    if (
-      !cardHolder.trim() ||
-      !cardNumber.trim() ||
-      !expiry.trim() ||
-      !cvc.trim()
-    ) {
-      toast.error('Completa los datos de la tarjeta');
-      return;
-    }
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData.entries()) as Record<
+      string,
+      string
+    >;
 
-    if (!defaultCliente?.id) {
-      toast.error('No hay cliente disponible para registrar la reserva.');
+    if (!data.cardHolder || !data.cardNumber || !data.expiry || !data.cvc) {
+      toast.error('Completa los datos de la tarjeta');
       return;
     }
 
@@ -283,26 +275,31 @@ export default function VehicleReservationClient({
 
     setIsSubmitting(true);
     try {
+      // 1. Crear reserva
       const fechaInicio = format(normalizedRange.from, 'yyyy-MM-dd');
       const fechaFin = format(normalizedRange.to, 'yyyy-MM-dd');
-
       const reserva = await createReserva({
         fechaInicio,
         fechaFin,
         cantidadDias: totalDays,
         precioTotal: totalAmount,
         vehiculoId: vehiculo.id,
-        clienteId: defaultCliente.id,
+        clienteId: DEFAULT_CLIENT_ID,
         estado: 'PENDIENTE',
       });
 
-      const referencia = `CARD-${cardNumber.trim().slice(-4)}-${Date.now()}`;
+      // Asegurarse de que el backend devolvió un ID válido antes de crear el pago
+      if (!reserva || !reserva.id) {
+        throw new Error('No se pudo obtener el ID de la reserva');
+      }
 
-      await createPago({
+      // 2. Crear pago con reservaId
+      const referencia = `TXN-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
+      const pago = await createPago({
         reservaId: reserva.id,
         monto: totalAmount,
-        metodoPago: 'TARJETA',
-        estado: 'APROBADO',
+        metodoPago: 'Tarjeta',
+        estado: 'Aprobado',
         referencia,
       });
 
@@ -312,15 +309,15 @@ export default function VehicleReservationClient({
       ]);
 
       setCheckoutStep('summary');
-      setCardHolder('');
-      setCardNumber('');
-      setExpiry('');
-      setCvc('');
 
       toast.success(
-        `Reserva creada y pagada por ${formatCurrency(totalAmount)} para ${getVehiculoNombre(vehiculo)}.`,
+        `Reserva ${reserva.id} creada. Pago ${pago.id} registrado.`,
       );
+      setTimeout(() => {
+        router.push('/catalog');
+      }, 1500);
     } catch (error) {
+      console.error('Error en reserva/pago:', error);
       toast.error(
         error instanceof Error
           ? error.message
@@ -486,8 +483,7 @@ export default function VehicleReservationClient({
                 disabled={
                   !canContinueToPayment ||
                   isPricingLoading ||
-                  isReservationsLoading ||
-                  isClientsLoading
+                  isReservationsLoading
                 }
                 onClick={() => setCheckoutStep('payment')}
               >
@@ -501,7 +497,10 @@ export default function VehicleReservationClient({
             </div>
 
             {checkoutStep === 'payment' && (
-              <div className="rounded-3xl border border-border bg-card p-6 space-y-4">
+              <form
+                onSubmit={handleCheckout}
+                className="rounded-3xl border border-border bg-card p-6 space-y-4"
+              >
                 <div className="flex items-center gap-2 text-foreground">
                   <CreditCard className="size-4 text-accent" />
                   <h2 className="text-lg font-semibold">
@@ -510,25 +509,51 @@ export default function VehicleReservationClient({
                 </div>
 
                 <Input
-                  value={cardHolder}
-                  onChange={(event) => setCardHolder(event.target.value)}
+                  name="cardHolder"
                   placeholder="Nombre del titular"
+                  required
                 />
                 <Input
-                  value={cardNumber}
-                  onChange={(event) => setCardNumber(event.target.value)}
+                  name="cardNumber"
                   placeholder="Número de tarjeta"
+                  required
+                  maxLength={19}
+                  onInput={(e) => {
+                    const input = e.currentTarget;
+                    let value = input.value.replace(/\D/g, '');
+                    value = value.replace(/(.{4})/g, '$1 ');
+                    input.value = value.trim();
+                  }}
+                  pattern="(?:\d{4} ){3}\d{4}"
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <Input
-                    value={expiry}
-                    onChange={(event) => setExpiry(event.target.value)}
+                    name="expiry"
                     placeholder="MM/AA"
+                    required
+                    maxLength={5}
+                    onInput={(e) => {
+                      const input = e.currentTarget;
+                      let value = input.value.replace(/[^\d]/g, '');
+                      if (value.length > 2) {
+                        value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                      }
+                      input.value = value;
+                    }}
+                    pattern="\d{2}/\d{2}"
                   />
                   <Input
-                    value={cvc}
-                    onChange={(event) => setCvc(event.target.value)}
+                    name="cvc"
                     placeholder="CVC"
+                    required
+                    maxLength={3}
+                    onInput={(e) => {
+                      const input = e.currentTarget;
+                      input.value = input.value
+                        .replace(/[^\d]/g, '')
+                        .slice(0, 3);
+                    }}
+                    pattern="\d{3}"
                   />
                 </div>
 
@@ -537,17 +562,14 @@ export default function VehicleReservationClient({
                     'w-full rounded-xl h-11',
                     isSubmitting && 'opacity-80',
                   )}
-                  onClick={handleCheckout}
+                  type="submit"
                   disabled={
-                    isSubmitting ||
-                    isReservationsLoading ||
-                    isPricingLoading ||
-                    isClientsLoading
+                    isSubmitting || isReservationsLoading || isPricingLoading
                   }
                 >
                   {isSubmitting ? 'Procesando pago...' : 'Pagar reserva'}
                 </Button>
-              </div>
+              </form>
             )}
           </div>
         </div>
