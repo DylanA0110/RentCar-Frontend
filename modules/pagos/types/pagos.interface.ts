@@ -16,3 +16,7 @@ export interface Reserva {
   precioTotal: string;
   estado: string;
 }
+
+export type PagoEstado = 'Pendiente' | 'Aprobado' | 'Rechazado' | 'Reembolsado';
+
+export type MetodoPago = 'Efectivo' | 'Tarjeta' | 'Transferencia';

@@ -1,12 +1,12 @@
 import { extractApiErrorMessage } from '@/shared/api/api-error';
 import { pagosApi } from '../api/pagos.api';
-import type { Pagos } from '../types/pagos.interface';
+import type { MetodoPago, PagoEstado, Pagos } from '../types/pagos.interface';
 
 export interface CreatePagoPayload {
   monto: number;
-  metodoPago: string;
+  metodoPago: MetodoPago;
   reservaId: string;
-  estado?: 'APROBADO' | 'PENDIENTE';
+  estado?: PagoEstado;
   referencia?: string;
 }
 
