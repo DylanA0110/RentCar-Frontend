@@ -37,11 +37,7 @@ export default function CategoriesPage() {
     <CRUDList
       title="Gestión de Categorías"
       description="Administra las categorías de vehículos"
-      createHref="/dashboard/categories/new"
       columns={columns}
-      rows={rows}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-    />
+      rows={rows} createHref={''}    />
   );
 }

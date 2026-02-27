@@ -25,6 +25,7 @@ export default function CustomersPage() {
     { key: 'email', label: 'Email' },
     { key: 'telefono', label: 'Teléfono' },
     { key: 'fechaRegistro', label: 'Fecha de registro' },
+    // columna de acciones eliminada
   ];
 
   const rows = useMemo(
@@ -52,11 +53,9 @@ export default function CustomersPage() {
     <CRUDList
       title="Gestión de Clientes"
       description="Administra tus clientes registrados"
-      createHref="/dashboard/customers/new"
       columns={columns}
       rows={rows}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
+      createHref={''}
     />
   );
 }

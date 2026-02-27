@@ -67,12 +67,9 @@ export default function EmployeersPage() {
   return (
     <CRUDList
       title="Gestión de Empleados"
-      description="Consulta todos los empleados registrados"
-      createHref="/dashboard/employeers"
+      description="Administra tus empleados registrados"
       columns={columns}
       rows={rows}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
     />
   );
 }

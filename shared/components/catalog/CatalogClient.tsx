@@ -2,10 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { DayPicker, type DateRange } from 'react-day-picker';
-import { es } from 'date-fns/locale';
-import { format, isAfter, isBefore, isSameDay, parseISO } from 'date-fns';
-import { Search, SlidersHorizontal, CalendarDays, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useVehiculo } from '@/modules/vehiculos/hook/useVehiculo';
 import { useReservas } from '@/modules/reservas/hook/useReservas';
 import { Button } from '@/shared/components/ui/button';
@@ -13,6 +10,7 @@ import { Input } from '@/shared/components/ui/input';
 
 import 'react-day-picker/style.css';
 import { cn } from '@/shared/lib/utils';
+import { isAfter, isBefore, isSameDay } from 'date-fns';
 
 const priceRanges = [
   { label: 'Todos', min: 0, max: Infinity },
@@ -25,19 +23,12 @@ const BLOCKING_STATUSES = new Set(['PENDIENTE', 'CONFIRMADA', 'EN_CURSO']);
 
 const toDate = (value: Date | string) => {
   if (value instanceof Date) return value;
-  const parsed = parseISO(value);
+  // Si value es string, intentar convertir a Date
+  const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const normalizeRange = (range?: DateRange) => {
-  if (!range?.from || !range?.to) return null;
-  const from =
-    isBefore(range.from, range.to) || isSameDay(range.from, range.to)
-      ? range.from
-      : range.to;
-  const to = isAfter(range.from, range.to) ? range.from : range.to;
-  return { from, to };
-};
+// ...existing code...
 
 const doesOverlap = (
   range: { from: Date; to: Date },
@@ -55,13 +46,12 @@ const CatalogClient = () => {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [activePriceRange, setActivePriceRange] = useState(0);
-  const [selectedRange, setSelectedRange] = useState<DateRange | undefined>();
+  // ...existing code...
+  // El filtro de fechas fue eliminado, así que definimos selectedNormalizedRange como null
+  const selectedNormalizedRange = null;
   const [showFilters, setShowFilters] = useState(false);
 
-  const selectedNormalizedRange = useMemo(
-    () => normalizeRange(selectedRange),
-    [selectedRange],
-  );
+  // ...existing code...
 
   const categories = useMemo(() => {
     const unique = new Set(
@@ -133,6 +123,10 @@ const CatalogClient = () => {
     (activePriceRange !== 0 ? 1 : 0) +
     (selectedNormalizedRange ? 1 : 0);
 
+  function setSelectedRange(undefined: undefined) {
+    throw new Error('Function not implemented.');
+  }
+
   return (
     <div className="pt-24 pb-16">
       <div className="container mx-auto">
@@ -174,47 +168,7 @@ const CatalogClient = () => {
 
         {showFilters && (
           <div className="rounded-2xl p-6 mb-6 border border-border/50 bg-card space-y-5">
-            <div>
-              <h3 className="mb-2 font-semibold text-foreground text-sm">
-                Fechas de viaje
-              </h3>
-              <div className="inline-block rounded-xl border border-border bg-background p-1.5">
-                <DayPicker
-                  mode="range"
-                  locale={es}
-                  selected={selectedRange}
-                  onSelect={setSelectedRange}
-                  disabled={{ before: new Date() }}
-                  className="catalog-calendar text-xs"
-                  classNames={{
-                    month: 'space-y-1',
-                    caption: 'flex justify-center py-0.5 relative items-center',
-                    caption_label: 'text-xs font-medium',
-                    nav_button: 'h-6 w-6',
-                    table: 'w-full border-collapse',
-                    head_row: 'flex gap-1',
-                    head_cell:
-                      'text-muted-foreground rounded-md w-7 font-normal text-[0.68rem]',
-                    row: 'flex w-full mt-1 gap-1',
-                    cell: 'h-7 w-7 text-center text-xs p-0 relative',
-                    day: 'h-7 w-7 p-0 font-normal rounded-md',
-                  }}
-                  modifiersClassNames={{
-                    range_start:
-                      '!bg-accent !text-accent-foreground rounded-md',
-                    range_middle: '!bg-accent/20 !text-foreground rounded-none',
-                    range_end: '!bg-accent !text-accent-foreground rounded-md',
-                    selected: '!bg-accent !text-accent-foreground rounded-md',
-                  }}
-                />
-              </div>
-              {selectedNormalizedRange && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Rango: {format(selectedNormalizedRange.from, 'dd/MM/yyyy')} →{' '}
-                  {format(selectedNormalizedRange.to, 'dd/MM/yyyy')}
-                </p>
-              )}
-            </div>
+            {/* Fechas de viaje (calendario) eliminado */}
 
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-foreground text-sm">

@@ -132,13 +132,7 @@ export default function ModelosPage() {
             Vista premium de modelos con sus imágenes.
           </p>
         </div>
-        <Link
-          href="/dashboard/modelos/new"
-          className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 font-medium text-accent-foreground transition-all duration-300 hover:opacity-90"
-        >
-          <Plus size={20} />
-          Crear Nuevo
-        </Link>
+        {/* Botón de crear nuevo eliminado */}
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -258,28 +252,7 @@ export default function ModelosPage() {
                       {modelo.tipoCombustible ?? 'Combustible N/A'} ·{' '}
                       {modelo.capacidadPasajeros ?? 'N/A'} pax
                     </span>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(modelo)}
-                        disabled={Boolean(deletingById[modelo.id])}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-                        aria-label="Eliminar modelo"
-                      >
-                        {deletingById[modelo.id] ? (
-                          <Trash2 size={14} className="animate-pulse" />
-                        ) : (
-                          <Trash2 size={14} />
-                        )}
-                      </button>
-                      <Link
-                        href={`/dashboard/modelos/${modelo.id}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-                        aria-label="Editar modelo"
-                      >
-                        <Pencil size={14} />
-                      </Link>
-                    </div>
+                    {/* Botones de editar y eliminar eliminados */}
                   </div>
                 </div>
               </div>

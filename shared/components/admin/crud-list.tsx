@@ -40,13 +40,15 @@ export function CRUDList({
           <h1 className="heading-2 text-foreground mb-1">{title}</h1>
           <p className="text-muted-foreground">{description}</p>
         </div>
-        <Link
-          href={createHref}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-accent-foreground rounded-xl font-medium hover:opacity-90 transition-all duration-300"
-        >
-          <Plus size={20} />
-          Crear Nuevo
-        </Link>
+        {createHref ? (
+          <Link
+            href={createHref}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-accent-foreground rounded-xl font-medium hover:opacity-90 transition-all duration-300"
+          >
+            <Plus size={20} />
+            Crear Nuevo
+          </Link>
+        ) : null}
       </div>
 
       {/* Search */}
@@ -66,30 +68,7 @@ export function CRUDList({
 
       {/* Table */}
       <div className="bg-card rounded-2xl shadow-sm p-6 transition-all duration-300 overflow-hidden">
-        <DataTable
-          columns={columns}
-          rows={filteredRows}
-          actions={(row) => (
-            <div className="flex items-center gap-2">
-              {onEdit && (
-                <button
-                  onClick={() => onEdit(row.id)}
-                  className="p-2 hover:bg-secondary rounded-lg transition-all duration-300 text-sm font-medium text-accent"
-                >
-                  Editar
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={() => onDelete(row.id)}
-                  className="p-2 hover:bg-secondary rounded-lg transition-all duration-300"
-                >
-                  <MoreHorizontal size={18} className="text-foreground" />
-                </button>
-              )}
-            </div>
-          )}
-        />
+        <DataTable columns={columns} rows={filteredRows} />
       </div>
     </div>
   );

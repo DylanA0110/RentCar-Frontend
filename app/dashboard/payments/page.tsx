@@ -132,11 +132,7 @@ export default function PaymentsPage() {
     <CRUDList
       title="Gestión de Pagos"
       description="Administra los pagos de las reservas"
-      createHref="/dashboard/payments/new"
       columns={columns}
-      rows={rows}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-    />
+      rows={rows} createHref={''}    />
   );
 }
