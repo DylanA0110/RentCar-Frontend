@@ -12,8 +12,9 @@ import {
 
 export interface VehicleImageDraft {
   id: string;
-  file: File;
+  file?: File;
   previewUrl: string;
+  sourceUrl?: string;
   altText: string;
   esPrincipal: boolean;
 }
@@ -274,7 +275,7 @@ export function ImageGallery({
             className="block w-full cursor-pointer rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Se comprime automáticamente antes de subir (máx. 5MB).
+            Se comprime automáticamente antes de subir.
           </p>
           {fileError && (
             <p className="mt-1 text-xs text-destructive">{fileError}</p>

@@ -4,5 +4,5 @@ import axios from 'axios';
 const BASE_URL = rentCarApi.defaults.baseURL;
 
 export const vehiculosImgApi = axios.create({
-  baseURL: `${BASE_URL}/vehiculo-imagenes`,
+  baseURL: `${BASE_URL}/modelos-imagenes`,
 });

@@ -5,62 +5,58 @@ import { createVehiculoImagen } from './create-vehiculo-imagen';
 import { vehiculosImgApi } from '../api/vehicles.imagenes.api';
 
 export interface UploadVehiculoImagenPayload {
-  vehiculoId: string;
-  file: File;
+  vehiculoId?: string;
+  modeloId?: string;
+  file?: File;
+  imageUrl?: string;
 }
-
-const fileToDataUrl = async (file: File): Promise<string> => {
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result);
-        return;
-      }
-      reject(new Error('No se pudo convertir la imagen a URL'));
-    };
-    reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
-    reader.readAsDataURL(file);
-  });
-};
 
 export const uploadVehiculoImagen = async (
   payload: UploadVehiculoImagenPayload,
 ): Promise<VechilesImagenes> => {
   try {
-    const vehiculo = await getVehiculoById(payload.vehiculoId);
-    const modeloId = vehiculo.modelo?.id;
+    const modeloId = payload.modeloId
+      ? payload.modeloId
+      : payload.vehiculoId
+        ? (await getVehiculoById(payload.vehiculoId)).modelo?.id
+        : undefined;
 
     if (!modeloId) {
-      throw new Error('El vehículo no tiene un modelo asociado');
+      throw new Error('No se pudo determinar el modelo asociado');
     }
 
-    const formData = new FormData();
-    formData.append('file', payload.file);
-    formData.append('imagen', payload.file);
-    formData.append('modeloId', modeloId);
-    formData.append('vehiculoId', payload.vehiculoId);
+    if (!payload.file && !payload.imageUrl) {
+      throw new Error('Debes seleccionar una imagen para subir');
+    }
 
-    const multipartAttempts = ['/', '/upload'];
-    for (const path of multipartAttempts) {
-      try {
-        const { data } = await vehiculosImgApi.post<VechilesImagenes>(
-          path,
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          },
-        );
-        return data;
-      } catch {
-        // intentar siguiente estrategia
+    if (payload.file) {
+      const formData = new FormData();
+      formData.append('file', payload.file);
+      formData.append('imagen', payload.file);
+      formData.append('modeloId', modeloId);
+
+      if (payload.vehiculoId) {
+        formData.append('vehiculoId', payload.vehiculoId);
       }
+
+      const { data } = await vehiculosImgApi.post<VechilesImagenes>(
+        '/',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+
+      return data;
     }
 
-    const dataUrl = await fileToDataUrl(payload.file);
-    return await createVehiculoImagen({ modeloId, url: dataUrl });
+    if (!payload.imageUrl) {
+      throw new Error('No se pudo obtener la URL de la imagen');
+    }
+
+    return await createVehiculoImagen({ modeloId, url: payload.imageUrl });
   } catch (error) {
     const apiMessage = extractApiErrorMessage(
       error,

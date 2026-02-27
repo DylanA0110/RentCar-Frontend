@@ -11,18 +11,13 @@ import Link from 'next/link';
 import { createVehiculo } from '@/modules/vehiculos/actions/create-vehiculo';
 import { updateVehiculo } from '@/modules/vehiculos/actions/update-vehiculo';
 import { getVehiculoById } from '@/modules/vehiculos/actions/get-vehiculo-by-id';
-import { uploadVehiculoImagen } from '@/modules/vehiculos-imagenes/actions/upload-vehiculo-imagen';
-import { removeVehiculoImagen } from '@/modules/vehiculos-imagenes/actions/remove-vehiculo-imagen';
 import { useModelos } from '@/modules/modelos/hook/useModelos';
 import type {
-  VehiculoImagen,
   VehiculoPayload,
   VehiculoEstado,
 } from '@/modules/vehiculos/types/vehiculo.interface';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
-import { ImageGallery } from './image-gallery';
-import type { VehicleImageDraft } from './image-gallery';
 
 const VehicleSchema = z.object({
   modeloId: z.string().trim().min(1, 'Debes seleccionar un modelo'),
@@ -58,8 +53,6 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
     kilometraje: '',
     estado: 'disponible',
   });
-  const [images, setImages] = useState<VehicleImageDraft[]>([]);
-  const [existingImages, setExistingImages] = useState<VehiculoImagen[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -91,67 +84,12 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
           : String(vehiculo.kilometraje),
       estado,
     });
-    setExistingImages(vehiculo.imagenes ?? []);
   }, [vehiculoQuery.data]);
 
   const refreshCaches = async (id?: string) => {
     await queryClient.invalidateQueries({ queryKey: ['vehiculos'] });
     if (id) {
       await queryClient.invalidateQueries({ queryKey: ['vehiculo', id] });
-    }
-  };
-
-  const handleDeleteExistingImage = async (imageId: string) => {
-    try {
-      await removeVehiculoImagen(imageId);
-      setExistingImages((prev) => prev.filter((image) => image.id !== imageId));
-      await refreshCaches(vehicleId);
-      toast.success('Imagen eliminada correctamente');
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo eliminar la imagen',
-      );
-    }
-  };
-
-  const handleReplaceExistingImage = async (
-    imageId: string,
-    file: File,
-    _options?: { altText?: string; esPrincipal?: boolean },
-  ) => {
-    if (!vehicleId) return;
-
-    try {
-      await removeVehiculoImagen(imageId);
-      const uploaded = await uploadVehiculoImagen({
-        vehiculoId: vehicleId,
-        file,
-      });
-
-      const mappedImage: VehiculoImagen = {
-        id: uploaded.id,
-        url: uploaded.url,
-        createdAt:
-          uploaded.createdAt instanceof Date
-            ? uploaded.createdAt.toISOString()
-            : uploaded.createdAt,
-      };
-
-      setExistingImages((prev) => {
-        const withoutOld = prev.filter((image) => image.id !== imageId);
-        return [...withoutOld, mappedImage];
-      });
-
-      await refreshCaches(vehicleId);
-      toast.success('Imagen reemplazada correctamente');
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo reemplazar la imagen',
-      );
     }
   };
 
@@ -208,17 +146,6 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
           ? await updateVehiculo(vehicleId, payload)
           : await createVehiculo(payload);
 
-      if (images.length > 0) {
-        await Promise.all(
-          images.map((image) =>
-            uploadVehiculoImagen({
-              vehiculoId: vehiculo.id,
-              file: image.file,
-            }),
-          ),
-        );
-      }
-
       await refreshCaches(vehiculo.id);
 
       toast.success(
@@ -269,7 +196,7 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {isEditing
-                ? 'Actualiza la información principal y agrega nuevas imágenes.'
+                ? 'Actualiza la información principal del vehículo.'
                 : 'Completa la ficha del vehículo con un diseño limpio y premium.'}
             </p>
           </div>
@@ -281,89 +208,71 @@ export function VehicleForm({ vehicleId }: VehicleFormProps) {
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="mb-6 text-lg font-semibold text-foreground">
-              Información del vehículo
-            </h2>
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <h2 className="mb-6 text-lg font-semibold text-foreground">
+          Información del vehículo
+        </h2>
 
-            <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Modelo" error={errors.modeloId}>
-                <select
-                  name="modeloId"
-                  value={formData.modeloId}
-                  onChange={handleTextChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">
-                    {isLoadingModelos
-                      ? 'Cargando modelos...'
-                      : 'Selecciona un modelo'}
-                  </option>
-                  {(modelos ?? []).map((modelo) => (
-                    <option key={modelo.id} value={modelo.id}>
-                      {modelo.marca} {modelo.nombre} ({modelo.anio})
-                    </option>
-                  ))}
-                </select>
-              </Field>
+        <div className="grid gap-5 md:grid-cols-2">
+          <Field label="Modelo" error={errors.modeloId}>
+            <select
+              name="modeloId"
+              value={formData.modeloId}
+              onChange={handleTextChange}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">
+                {isLoadingModelos
+                  ? 'Cargando modelos...'
+                  : 'Selecciona un modelo'}
+              </option>
+              {(modelos ?? []).map((modelo) => (
+                <option key={modelo.id} value={modelo.id}>
+                  {modelo.marca} {modelo.nombre} ({modelo.anio})
+                </option>
+              ))}
+            </select>
+          </Field>
 
-              <Field label="Placa" error={errors.placa}>
-                <Input
-                  name="placa"
-                  value={formData.placa}
-                  onChange={handleTextChange}
-                  placeholder="ABC-123"
-                />
-              </Field>
+          <Field label="Placa" error={errors.placa}>
+            <Input
+              name="placa"
+              value={formData.placa}
+              onChange={handleTextChange}
+              placeholder="ABC-123"
+            />
+          </Field>
 
-              <Field label="Color" error={errors.color}>
-                <Input
-                  name="color"
-                  value={formData.color ?? ''}
-                  onChange={handleTextChange}
-                  placeholder="Rojo"
-                />
-              </Field>
+          <Field label="Color" error={errors.color}>
+            <Input
+              name="color"
+              value={formData.color ?? ''}
+              onChange={handleTextChange}
+              placeholder="Rojo"
+            />
+          </Field>
 
-              <Field label="Kilometraje" error={errors.kilometraje}>
-                <Input
-                  name="kilometraje"
-                  value={formData.kilometraje ?? ''}
-                  onChange={handleTextChange}
-                  placeholder="35000"
-                />
-              </Field>
+          <Field label="Kilometraje" error={errors.kilometraje}>
+            <Input
+              name="kilometraje"
+              value={formData.kilometraje ?? ''}
+              onChange={handleTextChange}
+              placeholder="35000"
+            />
+          </Field>
 
-              <Field label="Estado" error={errors.estado}>
-                <select
-                  name="estado"
-                  value={formData.estado}
-                  onChange={handleTextChange}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="disponible">Disponible</option>
-                  <option value="en reparacion">En reparación</option>
-                  <option value="rentado">Rentado</option>
-                </select>
-              </Field>
-            </div>
-          </div>
-        </div>
-
-        <div className="h-fit rounded-2xl border border-border bg-card p-6">
-          <ImageGallery
-            images={images}
-            existingImages={existingImages}
-            onChange={setImages}
-            onDeleteExistingImage={
-              isEditing ? handleDeleteExistingImage : undefined
-            }
-            onReplaceExistingImage={
-              isEditing ? handleReplaceExistingImage : undefined
-            }
-          />
+          <Field label="Estado" error={errors.estado}>
+            <select
+              name="estado"
+              value={formData.estado}
+              onChange={handleTextChange}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="disponible">Disponible</option>
+              <option value="en reparacion">En reparación</option>
+              <option value="rentado">Rentado</option>
+            </select>
+          </Field>
         </div>
       </div>
     </form>
