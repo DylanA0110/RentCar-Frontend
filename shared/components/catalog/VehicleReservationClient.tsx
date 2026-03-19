@@ -79,9 +79,9 @@ const getChargeableDates = (range?: DateRange) => {
 };
 
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('es-DO', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'DOP',
+    currency: 'USD',
     maximumFractionDigits: 2,
   }).format(value);
 };
@@ -285,7 +285,7 @@ export default function VehicleReservationClient({
         precioTotal: totalAmount,
         vehiculoId: vehiculo.id,
         clienteId: DEFAULT_CLIENT_ID,
-        estado: 'PENDIENTE',
+        estado: 'CONFIRMADA',
       });
 
       // Asegurarse de que el backend devolvió un ID válido antes de crear el pago

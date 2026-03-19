@@ -32,12 +32,13 @@ const formatCurrency = (value: number | string) => {
   const amount = typeof value === 'string' ? Number(value) : value;
   if (Number.isNaN(amount)) return String(value);
 
-  return new Intl.NumberFormat('es-DO', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'DOP',
+    currency: 'USD',
     maximumFractionDigits: 2,
   }).format(amount);
 };
+
 
 const getStatusLabel = (status: string) => {
   const normalized = status.toLowerCase();
