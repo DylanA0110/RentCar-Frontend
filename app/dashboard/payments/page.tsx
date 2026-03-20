@@ -5,15 +5,15 @@ import Link from 'next/link';
 import { usePagos } from '@/modules/pagos/hook/usePagos';
 import { CRUDList } from '@/shared/components/admin/crud-list';
 
-const formatMonto = (monto: number | string) => {
-  const value = typeof monto === 'string' ? Number(monto) : monto;
-  if (Number.isNaN(value)) return String(monto);
+const formatCurrency = (value: number | string) => {
+  const amount = typeof value === 'string' ? Number(value) : value;
+  if (Number.isNaN(amount)) return String(value);
 
-  return new Intl.NumberFormat('es-DO', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'DOP',
+    currency: 'USD',
     maximumFractionDigits: 2,
-  }).format(value);
+  }).format(amount);
 };
 
 const formatFecha = (fecha: Date | string) => {
@@ -113,7 +113,7 @@ export default function PaymentsPage() {
           'Sin reserva asociada'
         ),
         metodoPago: formatMetodoPago(pago.metodoPago),
-        monto: formatMonto(pago.monto),
+        monto: formatCurrency(pago.monto),
         fechaPago: formatFecha(pago.fechaPago),
         estado: getEstadoBadge(pago.estado),
       })),

@@ -1,6 +1,7 @@
 import { extractApiErrorMessage } from '@/shared/api/api-error';
 import { reservasApi } from '../api/reservas.api';
 import type { Reservas } from '../types/reservas.interface';
+import { ReservaEstado } from '@/shared/types/types-reserva-estado';
 
 export interface CreateReservaPayload {
   fechaInicio: string;
@@ -9,7 +10,7 @@ export interface CreateReservaPayload {
   precioTotal: number;
   vehiculoId: string;
   clienteId: string;
-  estado?: 'PENDIENTE' | 'CONFIRMADA';
+  estado?: ReservaEstado;
 }
 
 export const createReserva = async (
