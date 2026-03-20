@@ -22,10 +22,10 @@ const formatPrecio = (precio: number | string | null) => {
   if (precio === null) return 'N/A';
   const value = typeof precio === 'string' ? Number(precio) : precio;
   if (Number.isNaN(value)) return String(precio);
-  return new Intl.NumberFormat('es-DO', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'DOP',
-    maximumFractionDigits: 0,
+    currency: 'USD',
+    maximumFractionDigits: 2,
   }).format(value);
 };
 
