@@ -24,10 +24,21 @@ export const getVehiculoById = async (
       signal: options.signal,
     });
 
+    const normalizedModelo = {
+      ...modelo,
+      imagenes: modelo.imagenes?.map((imagen) => ({
+        ...imagen,
+        createdAt:
+          imagen.createdAt === undefined
+            ? undefined
+            : String(imagen.createdAt),
+      })),
+    };
+
     return {
       ...data,
-      modelo,
-      imagenes: modelo.imagenes ?? data.imagenes,
+      modelo: normalizedModelo,
+      imagenes: normalizedModelo.imagenes ?? data.imagenes,
     };
   } catch (error) {
     const apiMessage = extractApiErrorMessage(

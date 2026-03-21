@@ -12,7 +12,9 @@ export interface Categoria {
 export interface VehiculoImagen {
   id: string;
   url: string;
-  createdAt?: string;
+  altText?: string;
+  esPrincipal?: boolean;
+  createdAt?: Date | string;
 }
 
 export interface Modelo {

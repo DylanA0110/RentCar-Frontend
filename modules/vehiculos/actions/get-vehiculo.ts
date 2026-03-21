@@ -21,10 +21,23 @@ export const getVehiculos = async (
     const enriched = data.map((vehiculo) => {
       const modeloId = vehiculo.modelo?.id;
       const modelo = modeloId ? modeloById.get(modeloId) : undefined;
+      const normalizedModelo = modelo
+        ? {
+            ...modelo,
+            imagenes: modelo.imagenes?.map((imagen) => ({
+              ...imagen,
+              createdAt:
+                imagen.createdAt === undefined
+                  ? undefined
+                  : String(imagen.createdAt),
+            })),
+          }
+        : undefined;
+
       return {
         ...vehiculo,
-        modelo: modelo ?? vehiculo.modelo,
-        imagenes: modelo?.imagenes ?? vehiculo.imagenes,
+        modelo: normalizedModelo ?? vehiculo.modelo,
+        imagenes: normalizedModelo?.imagenes ?? vehiculo.imagenes,
       };
     });
 

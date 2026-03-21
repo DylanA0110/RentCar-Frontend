@@ -70,6 +70,7 @@ export default function EmployeersPage() {
       description="Administra tus empleados registrados"
       columns={columns}
       rows={rows}
+      createHref={''}
     />
   );
 }
