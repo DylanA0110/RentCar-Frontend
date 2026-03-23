@@ -1,11 +1,11 @@
 import { getVehiculos } from '../actions/get-vehiculo';
 import { useQuery } from '@tanstack/react-query';
 
-export const useVehiculo = () => {
+export const useVehiculo = (scope: 'public' | 'admin') => {
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['vehiculos'],
+    queryKey: ['vehiculos', scope],
     queryFn: ({ signal }) => getVehiculos({ signal }),
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: scope === 'public' ? 1000 * 60 * 5 : 0, // 5 minutos
   });
 
   return {

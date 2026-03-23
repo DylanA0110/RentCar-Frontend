@@ -220,7 +220,7 @@ const getApprovalStatus = (status: string) => {
 
 export default function ReservationsPage() {
   const { reservas, isLoading, isError, error, refetch } = useReservas();
-  const { vehiculos, isLoading: isVehiclesLoading } = useVehiculo();
+  const { vehiculos, isLoading: isVehiclesLoading } = useVehiculo('admin');
   const [selectedDate, setSelectedDate] = useState<Date>(startOfToday());
   const [currentMonth, setCurrentMonth] = useState<Date>(startOfToday());
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('all');

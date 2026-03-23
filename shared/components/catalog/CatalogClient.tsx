@@ -40,7 +40,7 @@ const doesOverlap = (
 };
 
 const CatalogClient = () => {
-  const { vehiculos, isLoading, isError, error, refetch } = useVehiculo();
+  const { vehiculos, isLoading, isError, error, refetch } = useVehiculo('admin');
   const { reservas } = useReservas();
 
   const [search, setSearch] = useState('');

@@ -35,7 +35,7 @@ export default function VehiclesPage() {
     Record<string, boolean>
   >({});
 
-  const { vehiculos, isLoading, isError, refetch } = useVehiculo();
+  const { vehiculos, isLoading, isError, refetch } = useVehiculo('admin');
 
   const filteredVehicles = useMemo(() => {
     const term = search.trim().toLowerCase();

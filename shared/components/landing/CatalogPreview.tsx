@@ -6,7 +6,7 @@ import { useVehiculo } from '@/modules/vehiculos/hook/useVehiculo';
 import { Button } from '../ui/button';
 
 const CatalogPreview = () => {
-  const { vehiculos, isLoading, isError } = useVehiculo();
+  const { vehiculos, isLoading, isError } = useVehiculo('public'  );
 
   const previewVehicles = useMemo(() => {
     return (vehiculos ?? []).slice(0, 3);
